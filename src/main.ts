@@ -1,0 +1,510 @@
+import Alpine from 'alpinejs';
+import { db, processImage } from './db';
+import type { Circle, Item, EventFolder } from './db';
+import { translations, languageList, type Language } from './i18n';
+
+document.addEventListener('alpine:init', () => {
+   Alpine.data('app', () => ({
+    lang: (localStorage.getItem('lang') || 'ja') as Language,
+    languageList,
+    darkMode: localStorage.getItem('theme') === 'dark' || 
+             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),
+    
+    t(key: keyof typeof translations['ja']) { return translations[this.lang][key] || key; },
+    setLang(l: string) { this.lang = l as Language; localStorage.setItem('lang', l); },
+    toggleDarkMode() { this.darkMode = !this.darkMode; localStorage.setItem('theme', this.darkMode ? 'dark' : 'light'); },
+
+    events: [] as EventFolder[],
+    currentEvent: null as EventFolder | null,
+    circles: [] as Circle[],
+    selectedIds: [] as number[],
+    isMenuOpen: false, 
+    isFormOpen: false, 
+    isDeleteMode: false,
+    pdfUrl: null as string | null,
+    editingId: null as number | null,
+    activeContextId: null as number | null,
+    longPressTimer: undefined as number | undefined,
+    sortOrder: 'space' as 'space' | 'name' | 'priority',
+    sortAsc: true,
+    eventSortDesc: true,
+    
+    // PDFリサイズ用
+    pdfWidth: parseInt(localStorage.getItem('pdfWidth') || '40'),
+    pdfHeight: parseInt(localStorage.getItem('pdfHeight') || '250'),
+    isPdfCollapsed: false,
+
+    // Aboutモーダル用
+    isAboutOpen: false,
+    aboutTab: 'usage', // 'usage' | 'terms' | 'policy' | 'dev'
+
+    get mapPaneStyle() {
+      if (window.innerWidth >= 900) {
+        const w = this.isPdfCollapsed ? '1px' : `${this.pdfWidth}vw`;
+        return { width: w };
+      } else {
+        const h = this.isPdfCollapsed ? '1px' : `${this.pdfHeight}px`;
+        return { height: h };
+      }
+    },
+
+    isEventModalOpen: false,
+    editingEventId: null as number | null,
+    tempEventName: '',
+    tempEventDate: '',
+
+    columns: parseInt(localStorage.getItem('columns') || '1') as 1 | 2,
+
+    previewImages: [] as string[],
+    previewIndex: 0,
+    imgStyles: { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' } as any,
+
+    newName: '',
+    newSpace: '',
+    newGenre: '',
+    newLinks: [{ url: '' }],
+    newPriority: 0,
+    newItems: [] as Item[],
+    newImagesPreview: [] as string[],
+    newFile: null as File | null,
+
+    async loadEvents() {
+      let list = await db.events.toArray();
+      list.sort((a, b) => {
+        const dateA = new Date(a.date || 0).getTime();
+        const dateB = new Date(b.date || 0).getTime();
+        return this.eventSortDesc ? dateB - dateA : dateA - dateB;
+      });
+      this.events = list;
+    },
+
+    toggleEventSort() {
+      this.eventSortDesc = !this.eventSortDesc;
+      this.loadEvents();
+    },
+
+    async init() {
+      this.initResizer();
+      await this.loadEvents();
+      
+      const lastEventId = localStorage.getItem('lastEventId');
+      let targetEvent = null;
+      
+      if (lastEventId) {
+        targetEvent = this.events.find(e => e.id === parseInt(lastEventId));
+      }
+      
+      if (!targetEvent && this.events.length > 0) {
+        targetEvent = this.events[0];
+      }
+
+      if (targetEvent) {
+        await this.selectEvent(targetEvent);
+      } else if (this.events.length === 0) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const id = await db.events.add({ name: 'New Event', date: `${yyyy}-${mm}-${dd}` });
+        await this.loadEvents();
+        const first = await db.events.get(id);
+        if (first) await this.selectEvent(first);
+      }
+    },
+
+    initResizer() {
+      const resizer = document.getElementById('resizer');
+      let isDragging = false;
+      let startX = 0;
+      let startY = 0;
+      let startSize = 0;
+
+      const start = (e: any) => { 
+        isDragging = true; 
+        this.isPdfCollapsed = false;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
+        
+        if (window.innerWidth >= 900) {
+          startSize = (this.pdfWidth * window.innerWidth) / 100;
+        } else {
+          startSize = this.pdfHeight;
+        }
+        document.body.style.userSelect = 'none';
+      };
+
+      const end = () => { 
+        if (!isDragging) return;
+        isDragging = false; 
+        document.body.style.userSelect = 'auto';
+        
+        if (window.innerWidth >= 900) {
+          if (this.pdfWidth < 3) this.isPdfCollapsed = true;
+          localStorage.setItem('pdfWidth', this.pdfWidth.toString());
+        } else {
+          if (this.pdfHeight < 30) this.isPdfCollapsed = true;
+          localStorage.setItem('pdfHeight', this.pdfHeight.toString());
+        }
+      };
+      
+      const move = (e: any) => {
+        if (!isDragging) return;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        if (window.innerWidth >= 900) {
+          const deltaX = startX - clientX;
+          const newSizePx = startSize + deltaX;
+          const vw = (newSizePx / window.innerWidth) * 100;
+          this.pdfWidth = Math.max(0, Math.min(95, vw));
+        } else {
+          const deltaY = startY - clientY;
+          const newSizePx = startSize + deltaY;
+          this.pdfHeight = Math.max(0, Math.min(window.innerHeight - 80, newSizePx));
+        }
+      };
+
+      resizer?.addEventListener('mousedown', start);
+      resizer?.addEventListener('touchstart', start, { passive: true });
+      window.addEventListener('mousemove', move);
+      window.addEventListener('touchmove', move, { passive: true });
+      window.addEventListener('mouseup', end);
+      window.addEventListener('touchend', end);
+    },
+
+    handleLongPressStart(id: number) {
+      this.longPressTimer = window.setTimeout(() => { this.activeContextId = id; }, 600);
+    },
+    handleLongPressEnd() {
+      window.clearTimeout(this.longPressTimer);
+    },
+
+    toggleColumns() {
+      this.columns = this.columns === 1 ? 2 : 1;
+      localStorage.setItem('columns', this.columns.toString());
+    },
+
+    async selectEvent(event: EventFolder) {
+      this.currentEvent = event;
+      if (event.id) localStorage.setItem('lastEventId', event.id.toString());
+      this.activeContextId = null;
+      this.isDeleteMode = false;
+      this.selectedIds = [];
+      if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+      this.pdfUrl = event.mapPdf ? URL.createObjectURL(event.mapPdf) + '#toolbar=0&navpanes=0' : null;
+      await this.refreshCircles();
+      this.isMenuOpen = false; 
+      this.isFormOpen = false;
+      this.editingId = null;
+    },
+
+    openEventCreateModal() {
+        this.editingEventId = null;
+        this.tempEventName = '';
+        const today = new Date();
+        this.tempEventDate = today.toISOString().split('T')[0];
+        this.isEventModalOpen = true;
+    },
+    openEventEditModal(event: EventFolder) {
+        this.activeContextId = null;
+        this.editingEventId = event.id!;
+        this.tempEventName = event.name;
+        this.tempEventDate = event.date || '';
+        this.isEventModalOpen = true;
+    },
+    async saveEvent() {
+        if (!this.tempEventName.trim()) return;
+        
+        if (this.editingEventId) {
+            await db.events.update(this.editingEventId, { name: this.tempEventName, date: this.tempEventDate });
+        } else {
+            const id = await db.events.add({ name: this.tempEventName, date: this.tempEventDate });
+            const newEv = await db.events.get(id);
+            if (newEv) await this.selectEvent(newEv);
+        }
+        await this.loadEvents();
+        this.isEventModalOpen = false;
+    },
+
+    async duplicateEvent(event: EventFolder) {
+      if (!event.id) return;
+      const circles = await db.circles.where('eventId').equals(event.id).toArray();
+      const newId = await db.events.add({ 
+        name: event.name + ' (Copy)', 
+        date: event.date, 
+        mapPdf: event.mapPdf 
+      });
+      for (const c of circles) {
+        delete c.id;
+        c.eventId = newId;
+        await db.circles.add(c);
+      }
+      await this.loadEvents();
+      this.activeContextId = null;
+    },
+
+    async deleteEvent(id: number) {
+      if (!confirm(this.t('deleteEventConfirm'))) return;
+      await db.events.delete(id);
+      await db.circles.where('eventId').equals(id).delete();
+      await this.init();
+      this.activeContextId = null;
+    },
+
+    setSortOrder(order: 'space' | 'name' | 'priority') {
+      if (this.sortOrder === order) {
+        this.sortAsc = !this.sortAsc;
+      } else {
+        this.sortOrder = order;
+        this.sortAsc = order === 'priority' ? false : true;
+      }
+      this.refreshCircles();
+    },
+
+    async refreshCircles() {
+      if (this.currentEvent && this.currentEvent.id !== undefined) {
+        let list = await db.circles.where('eventId').equals(this.currentEvent.id).toArray();
+        
+        const getSpaceRank = (space: string) => {
+          if (!space) return 99;
+          const char = space.charAt(0);
+          if (char === '東') return 1;
+          if (char === '西') return 2;
+          if (char === '南') return 3;
+          if (char === '北') return 4;
+          if (char === '企') return 5;
+          if (/[A-Za-z]/.test(char)) return 6;
+          if (/[あ-んア-ン]/.test(char)) return 7;
+          if (/[0-9]/.test(char)) return 8;
+          return 10;
+        };
+
+        list.sort((a, b) => {
+          let cmp = 0;
+          if (this.sortOrder === 'space') {
+            const rankA = getSpaceRank(a.space);
+            const rankB = getSpaceRank(b.space);
+            if (rankA !== rankB) {
+              cmp = rankA - rankB;
+            } else {
+              cmp = (a.space || '').localeCompare(b.space || '', 'ja', { numeric: true });
+            }
+          } else if (this.sortOrder === 'priority') {
+            const pA = a.priority || 0;
+            const pB = b.priority || 0;
+            cmp = pA - pB;
+          } else {
+            cmp = (a.name || '').localeCompare(b.name || '', 'ja');
+          }
+          return this.sortAsc ? cmp : -cmp;
+        });
+        
+        this.circles = list;
+      }
+    },
+
+    openImagePreview(circle: Circle) {
+      this.previewImages = circle.images && circle.images.length > 0 
+        ? circle.images 
+        : (circle.image ? [circle.image] : []);
+      this.previewIndex = 0;
+      this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
+    },
+
+    nextPreview() {
+      this.previewIndex = (this.previewIndex + 1) % this.previewImages.length;
+      this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
+    },
+    
+    prevPreview() {
+      this.previewIndex = (this.previewIndex - 1 + this.previewImages.length) % this.previewImages.length;
+      this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
+    },
+
+    updateImgStyle(e: Event) {
+      const img = e.target as HTMLImageElement;
+      if (!img.naturalWidth) return;
+      const containerRatio = 635 / 903;
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      if (imgRatio > containerRatio) {
+        this.imgStyles = { height: '100%', width: 'auto', maxWidth: 'none', maxHeight: 'none' };
+      } else {
+        this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
+      }
+    },
+
+    openAddForm() {
+      this.editingId = null;
+      this.newName = '';
+      this.newSpace = '';
+      this.newGenre = '';
+      this.newLinks = [{ url: '' }];
+      this.newPriority = 0;
+      this.newImagesPreview = [];
+      this.newFile = null;
+      this.newItems = [{ name: '', price: 0, isChecked: false }];
+      this.isFormOpen = true;
+      this.isDeleteMode = false;
+    },
+
+    async openEditForm(circle: Circle) {
+      if (this.isDeleteMode) return;
+      this.editingId = circle.id!;
+      this.newName = circle.name;
+      this.newSpace = circle.space;
+      this.newGenre = circle.genre || '';
+      this.newPriority = circle.priority || 0;
+      this.newFile = null;
+      
+      this.newImagesPreview = circle.images && circle.images.length > 0 
+        ? [...circle.images] 
+        : (circle.image ? [circle.image] : []);
+      
+      const existingLinks = circle.links || (circle.link ? [circle.link] : []);
+      this.newLinks = existingLinks.map(u => ({ url: u }));
+      if (this.newLinks.length === 0 || this.newLinks[this.newLinks.length - 1].url !== '') {
+        this.newLinks.push({ url: '' });
+      }
+
+      this.newItems = JSON.parse(JSON.stringify(circle.items));
+      if (this.newItems.length === 0 || this.newItems[this.newItems.length - 1].name !== '') {
+        this.newItems.push({ name: '', price: 0, isChecked: false });
+      }
+      this.isFormOpen = true;
+    },
+
+    async handleImageSelect(e: any) {
+      const files = e.target.files;
+      for (let i = 0; i < files.length; i++) {
+        const dataUrl = await processImage(files[i]);
+        this.newImagesPreview.push(dataUrl);
+      }
+      e.target.value = '';
+    },
+
+    async saveCircle() {
+      if (!this.newName || !this.currentEvent || !this.currentEvent.id) return;
+      
+      const validLinks = this.newLinks
+        .map(l => l.url.trim())
+        .filter(u => u !== '')
+        .map(u => /^https?:\/\//i.test(u) ? u : `https://${u}`);
+        
+      const validItems = this.newItems.filter(i => i.name.trim() !== '').map(i => ({
+        name: i.name,
+        price: Number(i.price) || 0,
+        isChecked: i.isChecked || false
+      }));
+      
+      const data: any = {
+        eventId: this.currentEvent.id,
+        name: this.newName,
+        space: this.newSpace,
+        genre: this.newGenre,
+        links: validLinks,
+        link: validLinks.length > 0 ? validLinks[0] : '',
+        priority: Number(this.newPriority),
+        items: validItems,
+        isChecked: false,
+        images: [...this.newImagesPreview],
+        image: this.newImagesPreview.length > 0 ? this.newImagesPreview[0] : ''
+      };
+      
+      if (this.editingId) {
+        await db.circles.update(this.editingId, data);
+      } else {
+        await db.circles.add(data);
+      }
+      
+      this.isFormOpen = false;
+      this.editingId = null;
+      await this.refreshCircles();
+    },
+
+    async toggleItemCheck(circleId: number, itemIndex: number) {
+      if (this.isDeleteMode) return;
+      const circle = await db.circles.get(circleId);
+      if (circle) {
+        circle.items[itemIndex].isChecked = !circle.items[itemIndex].isChecked;
+        await db.circles.put(circle);
+        await this.refreshCircles();
+      }
+    },
+
+    toggleDeleteMode() {
+      this.isDeleteMode = !this.isDeleteMode;
+      if (!this.isDeleteMode) this.selectedIds = [];
+    },
+    selectAll() {
+      this.selectedIds = this.circles.map(c => c.id!);
+    },
+    deselectAll() {
+      this.selectedIds = [];
+    },
+    async deleteSelected() {
+      if (this.selectedIds.length === 0) return;
+      if (!confirm(`${this.lang === 'ja' ? this.selectedIds.length : ''}${this.t('deleteSelectedConfirm')}`)) return;
+      await db.circles.bulkDelete(this.selectedIds.map(Number));
+      this.selectedIds = [];
+      this.isDeleteMode = false;
+      await this.refreshCircles();
+    },
+
+    checkAutoAddLink(index: number) {
+      if (index === this.newLinks.length - 1 && this.newLinks[index].url !== '') {
+        this.newLinks.push({ url: '' });
+      }
+    },
+    removeLinkInForm(index: number) {
+      this.newLinks.splice(index, 1);
+      if (this.newLinks.length === 0) this.newLinks.push({ url: '' });
+    },
+
+    async uploadMapPdf(e: any) {
+      const file = e.target.files[0];
+      if (!file || !this.currentEvent || !this.currentEvent.id) return;
+      await db.events.update(this.currentEvent.id, { mapPdf: file });
+      this.currentEvent.mapPdf = file;
+      if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+      this.pdfUrl = URL.createObjectURL(file) + '#toolbar=0&navpanes=0';
+    },
+
+    async resetMapPdf() {
+      if (!this.currentEvent || !this.currentEvent.id || !confirm(this.t('deletePdfConfirm'))) return;
+      await db.events.update(this.currentEvent.id, { mapPdf: undefined });
+      this.currentEvent.mapPdf = undefined;
+      if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+      this.pdfUrl = null;
+    },
+
+    removeItemInForm(index: number) { this.newItems.splice(index, 1); },
+    checkAutoAdd(index: number) {
+      if (index === this.newItems.length - 1 && this.newItems[index].name !== '') {
+        this.newItems.push({ name: '', price: 0, isChecked: false });
+      }
+    },
+    get totalPrice(): number {
+      return this.circles.reduce((sum, c) => sum + c.items.reduce((iSum, item) => iSum + (Number(item.price) || 0), 0), 0);
+    },
+    async exportData() {
+      if (!this.currentEvent) return;
+      const blob = new Blob([JSON.stringify({ event: this.currentEvent, circles: this.circles })], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.currentEvent.name}.json`; a.click();
+    },
+    async importData(e: any) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const data = JSON.parse(reader.result as string);
+        const newId = await db.events.add({ name: data.event.name + ' (Import)', date: data.event.date || new Date().toLocaleDateString() });
+        for (const c of data.circles) { delete c.id; c.eventId = newId; await db.circles.add(c); }
+        await this.init();
+      };
+      reader.readAsText(file);
+    },
+  }));
+});
+Alpine.start();
