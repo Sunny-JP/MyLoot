@@ -53,12 +53,10 @@ export const processImage = (file: File): Promise<string> => {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         
-        // 縦横の最大許容サイズを4000pxに設定
         const MAX_SIZE = 4000;
         let targetWidth = img.width;
         let targetHeight = img.height;
 
-        // 幅か高さが4000pxを超えている場合は、長辺を基準にアスペクト比を維持して縮小
         if (targetWidth > MAX_SIZE || targetHeight > MAX_SIZE) {
           if (targetWidth > targetHeight) {
             targetHeight = Math.round(targetHeight * (MAX_SIZE / targetWidth));
@@ -73,10 +71,8 @@ export const processImage = (file: File): Promise<string> => {
         canvas.height = targetHeight;
         const ctx = canvas.getContext('2d');
         
-        // 全体を描画
         ctx?.drawImage(img, 0, 0, targetWidth, targetHeight);
         
-        // WebP形式（品質80%）で出力して高画質・高圧縮を両立する
         resolve(canvas.toDataURL('image/webp', 0.8));
       };
     };

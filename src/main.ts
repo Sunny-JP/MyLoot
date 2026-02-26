@@ -1,20 +1,28 @@
+/// <reference types="vite-plugin-pwa/client" />
+
+import '@fontsource/noto-sans-jp/index.css';
+import '@fontsource/reddit-mono/index.css';
+import 'material-icons/iconfont/round.css';
+
 import Alpine from 'alpinejs';
+import { registerSW } from 'virtual:pwa-register';
 import { db, processImage } from './db';
 import type { Circle, Item, EventFolder } from './db';
 import { translations, languageList, type Language } from './i18n';
 
-declare global {
-  interface Window {
-    pdfjsLib: any;
-  }
-}
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+registerSW({ immediate: true });
 
 document.addEventListener('alpine:init', () => {
-   Alpine.data('app', () => ({
+  Alpine.data('app', () => ({
     lang: (localStorage.getItem('lang') || 'ja') as Language,
     languageList,
     darkMode: localStorage.getItem('theme') === 'dark' || 
-             (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),
+            (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),
     
     t(key: keyof typeof translations['ja']) { return translations[this.lang][key] || key; },
     setLang(l: string) { this.lang = l as Language; localStorage.setItem('lang', l); },
@@ -100,11 +108,8 @@ document.addEventListener('alpine:init', () => {
     newFile: null as File | null,
 
     async renderPdf(url: string) {
-      if (!window.pdfjsLib) return;
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
       try {
-        const loadingTask = window.pdfjsLib.getDocument(url);
+        const loadingTask = pdfjsLib.getDocument(url);
         const pdfDoc = await loadingTask.promise;
         
         setTimeout(async () => {
@@ -126,7 +131,12 @@ document.addEventListener('alpine:init', () => {
             canvas.height = viewport.height;
             canvas.width = viewport.width;
 
-            const renderContext = { canvasContext: ctx, viewport: viewport };
+            const renderContext = {
+              canvasContext: ctx,
+              viewport: viewport,
+              canvas: canvas
+            };
+
             await page.render(renderContext).promise;
           }
         }, 50);
