@@ -37,8 +37,15 @@ document.addEventListener('alpine:init', () => {
     isDeleteMode: false,
     pdfUrl: null as string | null,
     editingId: null as number | null,
+    
     activeContextId: null as number | null,
     longPressTimer: undefined as number | undefined,
+
+    activeCircleContextId: null as number | null,
+    circleLongPressTimer: undefined as number | undefined,
+    isCircleDetailOpen: false,
+    selectedCircle: null as Circle | null,
+
     sortOrder: 'space' as 'space' | 'name' | 'priority',
     sortAsc: true,
     eventSortDesc: true,
@@ -50,12 +57,35 @@ document.addEventListener('alpine:init', () => {
     isAboutOpen: false,
     aboutTab: 'usage',
 
-    // --- PDFズーム関連の修正 ---
     pdfZoom: 1.0,
     initialPinchDist: 0,
     initialPinchZoom: 1.0,
     pinchCenterX: 0,
     pinchCenterY: 0,
+
+    // サークルカードの長押し判定
+    handleCircleLongPressStart(id: number) {
+      if (this.isDeleteMode) return;
+      this.circleLongPressTimer = window.setTimeout(() => { this.activeCircleContextId = id; }, 600);
+    },
+    handleCircleLongPressEnd() {
+      window.clearTimeout(this.circleLongPressTimer);
+    },
+
+    // 詳細モーダルを開く
+    openCircleDetail(circle: Circle) {
+      if (this.isDeleteMode || this.activeCircleContextId === circle.id) return;
+      this.selectedCircle = circle;
+      this.isCircleDetailOpen = true;
+    },
+
+    // サークルの削除 (コンテキストメニューから)
+    async deleteCircle(id: number) {
+      if (!confirm(`${this.t('deleteOneCircleConfirm')}`)) return;
+      await db.circles.delete(id);
+      this.activeCircleContextId = null;
+      await this.refreshCircles();
+    },
 
     handleTouchStart(e: TouchEvent) {
       if (e.touches.length === 2) {
@@ -71,7 +101,6 @@ document.addEventListener('alpine:init', () => {
           const clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
           const clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
           
-          // コンテナ内における指の中心の絶対座標を記録
           this.pinchCenterX = wrapper.scrollLeft + (clientX - rect.left);
           this.pinchCenterY = wrapper.scrollTop + (clientY - rect.top);
         }
@@ -80,7 +109,7 @@ document.addEventListener('alpine:init', () => {
     
     handleTouchMove(e: TouchEvent) {
       if (e.touches.length === 2) {
-        e.preventDefault(); // ブラウザデフォルトのズームを防止
+        e.preventDefault();
         const wrapper = document.getElementById('pdf-scroll-wrapper');
         if (!wrapper) return;
 
@@ -95,7 +124,6 @@ document.addEventListener('alpine:init', () => {
           const zoomDelta = newZoom / this.pdfZoom;
           this.pdfZoom = newZoom;
 
-          // ズーム後の新しい座標を計算
           const newPinchCenterX = this.pinchCenterX * zoomDelta;
           const newPinchCenterY = this.pinchCenterY * zoomDelta;
 
@@ -103,17 +131,14 @@ document.addEventListener('alpine:init', () => {
           const clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
           const clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
           
-          // 指の中心がズレないようにスクロール位置を調整
           wrapper.scrollLeft = newPinchCenterX - (clientX - rect.left);
           wrapper.scrollTop = newPinchCenterY - (clientY - rect.top);
 
-          // 次のMoveのために基準を更新
           this.pinchCenterX = newPinchCenterX;
           this.pinchCenterY = newPinchCenterY;
         }
       }
     },
-    // ---------------------------
 
     get mapPaneStyle() {
       if (window.innerWidth >= 900) {
@@ -138,7 +163,6 @@ document.addEventListener('alpine:init', () => {
 
     newName: '',
     newSpace: '',
-    newGenre: '',
     newLinks: [{ url: '' }],
     newPriority: 0,
     newItems: [] as Item[],
@@ -165,7 +189,6 @@ document.addEventListener('alpine:init', () => {
             const ctx = canvas.getContext('2d');
             if (!ctx) continue;
 
-            // 解像度を上げてクッキリさせる (scale: 4.0)
             const viewport = page.getViewport({ scale: 4.0 });
             canvas.height = viewport.height;
             canvas.width = viewport.width;
@@ -460,7 +483,6 @@ document.addEventListener('alpine:init', () => {
       this.editingId = null;
       this.newName = '';
       this.newSpace = '';
-      this.newGenre = '';
       this.newLinks = [{ url: '' }];
       this.newPriority = 0;
       this.newImagesPreview = [];
@@ -475,7 +497,6 @@ document.addEventListener('alpine:init', () => {
       this.editingId = circle.id!;
       this.newName = circle.name;
       this.newSpace = circle.space;
-      this.newGenre = circle.genre || '';
       this.newPriority = circle.priority || 0;
       this.newFile = null;
       
@@ -523,7 +544,7 @@ document.addEventListener('alpine:init', () => {
         eventId: this.currentEvent.id,
         name: this.newName,
         space: this.newSpace,
-        genre: this.newGenre,
+        genre: '',
         links: validLinks,
         link: validLinks.length > 0 ? validLinks[0] : '',
         priority: Number(this.newPriority),
@@ -551,6 +572,11 @@ document.addEventListener('alpine:init', () => {
         circle.items[itemIndex].isChecked = !circle.items[itemIndex].isChecked;
         await db.circles.put(circle);
         await this.refreshCircles();
+
+        // 詳細モーダル表示中のサークルなら状態を同期する
+        if (this.selectedCircle && this.selectedCircle.id === circleId) {
+          this.selectedCircle = circle;
+        }
       }
     },
 
@@ -566,7 +592,7 @@ document.addEventListener('alpine:init', () => {
     },
     async deleteSelected() {
       if (this.selectedIds.length === 0) return;
-      if (!confirm(`${this.lang === 'ja' ? this.selectedIds.length : ''}${this.t('deleteSelectedConfirm')}`)) return;
+      if (!confirm(`${this.selectedIds.length}${this.t('deleteSelectedConfirm')}`)) return;
       await db.circles.bulkDelete(this.selectedIds.map(Number));
       this.selectedIds = [];
       this.isDeleteMode = false;

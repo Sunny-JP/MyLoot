@@ -212,12 +212,12 @@ input, button, select { font-family: inherit; }
 .btn-pill.primary { background: var(--p); color: var(--p-contrast); border: none; }
 
 .circles-grid { display: flex; flex-direction: column; gap: 8px; }
-.circle-wrapper { display: flex; flex-direction: column; }
+.circle-wrapper { display: flex; flex-direction: column; position: relative; }
 
 .circles-grid.grid-2col { display: block; column-count: 2; column-gap: 8px; }
 .circles-grid.grid-2col .circle-wrapper { break-inside: avoid; page-break-inside: avoid; margin-bottom: 8px; }
 
-.circle-card { background: var(--card); border-radius: 10px; padding: 8px; display: flex; gap: 10px; border: 1px solid var(--brd); align-items: flex-start; }
+.circle-card { background: var(--card); border-radius: 10px; padding: 8px; display: flex; gap: 10px; border: 1px solid var(--brd); align-items: flex-start; cursor: pointer; }
 .circle-card.checked { opacity: 0.5; filter: grayscale(1); }
 .circle-card.editing { border-color: var(--p); box-shadow: 0 0 0 1px var(--p); }
 
@@ -225,13 +225,13 @@ input, button, select { font-family: inherit; }
 .selector-box input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--p); cursor: pointer; }
 .thumb { width: 50px; height: 71px; border-radius: 4px; overflow: hidden; flex-shrink: 0; background: var(--bg); cursor: pointer; }
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
-.info { flex: 1; min-width: 0; }
+.info { flex: 1; min-width: 0; pointer-events: none; }
 
 .grid-2col .circle-card { padding: 6px; gap: 6px; }
 .grid-2col .thumb { width: 44px; height: 62px; }
 
 .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
-.title-row h3 { margin: 0; font-size: 14px; cursor: pointer; word-break: break-all; line-height: 1.2; flex: 1; }
+.title-row h3 { margin: 0; font-size: 14px; word-break: break-all; line-height: 1.2; flex: 1; }
 .priority-stars { display: flex; color: #f5a623; flex-shrink: 0; }
 .priority-stars .material-icons-round { font-size: 14px; }
 
@@ -239,10 +239,10 @@ input, button, select { font-family: inherit; }
 .badge { background: var(--p); color: var(--p-contrast); font-size: 12px; font-weight: bold; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.5px; border: 1px solid var(--p); }
 body.dark .badge { background: var(--p); color: var(--p-contrast); border-color: var(--p); }
 
-.link-badge { background: var(--bg); color: var(--p); border: 1px solid var(--p); text-decoration: none; display: inline-flex; align-items: center; gap: 2px; }
+.link-badge { background: var(--bg); color: var(--p); border: 1px solid var(--p); text-decoration: none; display: inline-flex; align-items: center; gap: 2px; pointer-events: auto; }
 body.dark .link-badge { background: var(--card); color: #fff; border-color: #555; }
 
-.item-row { display: flex; align-items: center; gap: 4px; padding: 4px 0; font-size: 13px; border-bottom: 1px solid var(--brd); cursor: pointer; }
+.item-row { display: flex; align-items: center; gap: 4px; padding: 4px 0; font-size: 13px; border-bottom: 1px solid var(--brd); }
 .item-row:last-child { border-bottom: none; }
 .item-row.done { color: var(--mut); text-decoration: line-through; }
 .item-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -289,3 +289,31 @@ body.dark .link-badge { background: var(--card); color: #fff; border-color: #555
 
 .side-footer { padding: 12px; border-top: 1px solid var(--brd); background: var(--card); }
 .side-footer .input-flat { font-weight: bold; }
+
+.detail-item-card {
+  background: var(--card);
+  border: 1px solid var(--brd);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 0;
+}
+.detail-item-card:active {
+  background: var(--bg);
+}
+.detail-item-card.done {
+  opacity: 0.5;
+}
+.detail-item-card .item-name {
+  font-weight: bold;
+  font-size: 15px;
+  white-space: normal;
+  word-break: break-all;
+}
+.detail-item-card.done .item-name {
+  text-decoration: line-through;
+}

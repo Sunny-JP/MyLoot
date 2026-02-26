@@ -1,7 +1,8 @@
 export const translations = {
   ja: {
     siteTitle: 'MyLoot',
-    purchaseList: 'MyLoot',
+    purchaseList: '購入リスト',
+    purchaseListEmpty: 'アイテムが登録されていません',
     events: 'イベント管理',
     newEvent: '新規イベント',
     eventName: 'イベント名',
@@ -17,6 +18,7 @@ export const translations = {
     addToList: 'リストに追加',
     update: '更新',
     cancel: 'キャンセル',
+    deleteOneCircleConfirm: 'このサークルを削除しますか？',
     deleteSelectedConfirm: '件のサークルを削除しますか？',
     deletePdfConfirm: 'PDFを削除しますか？',
     mapEmpty: 'PDFをアップロードしてください',
@@ -68,7 +70,8 @@ export const translations = {
   },
   en: {
     siteTitle: 'MyLoot',
-    purchaseList: 'MyLoot',
+    purchaseList: 'Shopping List',
+    purchaseListEmpty: 'No items',
     events: 'Events',
     newEvent: 'New Event',
     eventName: 'Event Name',
@@ -84,7 +87,8 @@ export const translations = {
     addToList: 'Add',
     update: 'Update',
     cancel: 'Cancel',
-    deleteSelectedConfirm: ' circles selected. Delete?',
+    deleteOneCircleConfirm: 'Delete this circle?',
+    deleteSelectedConfirm: ' circle(s) selected. Delete?',
     deletePdfConfirm: 'Delete PDF?',
     mapEmpty: 'Please upload a PDF map.',
     openInBrowser: 'Open in Browser',

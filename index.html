@@ -32,7 +32,7 @@
               <span class="event-name" x-text="event.name"></span>
               <span class="event-date" x-show="event.date" x-text="event.date"></span>
             </div>
-            <div class="context-menu" x-show="activeContextId === event.id" @click.away="activeContextId = null" x-transition>
+            <div class="context-menu" x-show="activeContextId === event.id" @click.away="activeContextId = null" x-transition.opacity>
               <button @click="openEventEditModal(event)" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
               <button @click="duplicateEvent(event)" class="context-btn" :title="t('duplicate')"><span class="material-icons-round">content_copy</span></button>
               <button @click="deleteEvent(event.id)" class="context-btn del" :title="t('delete')"><span class="material-icons-round">delete</span></button>
@@ -49,7 +49,9 @@
         <div style="display: flex; gap: 4px; align-items: center; margin-bottom: 8px">
           <button @click="toggleDarkMode()" class="btn-pill"><span class="material-icons-round" x-text="darkMode ? 'dark_mode' : 'light_mode'"></span></button>
           <select class="input-flat" x-model="lang" @change="setLang($event.target.value)" style="flex: 1">
-            <template x-for="l in languageList" :key="l.code"><option :value="l.code" x-text="l.label"></option></template>
+            <template x-for="l in languageList" :key="l.code">
+              <option :value="l.code" x-text="l.label" :selected="l.code === lang"></option>
+            </template>
           </select>
         </div>
         <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%"><span class="material-icons-round" style="font-size: 18px; margin-right: 4px">info</span>About</button>
@@ -117,17 +119,18 @@
 
           <div class="circles-grid" :class="{ 'grid-2col': columns === 2 }">
             <template x-for="circle in circles" :key="circle.id">
-              <div class="circle-wrapper">
-                <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingId === circle.id }">
-                  <div x-show="isDeleteMode" class="selector-box" x-transition>
+              <div class="circle-wrapper" @contextmenu.prevent="if(!isDeleteMode) activeCircleContextId = (activeCircleContextId === circle.id ? null : circle.id)" @touchstart="handleCircleLongPressStart(circle.id)" @touchend="handleCircleLongPressEnd()">
+                <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingId === circle.id }" @click="openCircleDetail(circle)">
+                  <div x-show="isDeleteMode" class="selector-box" x-transition.opacity @click.stop>
                     <input type="checkbox" :value="circle.id" x-model="selectedIds" />
                   </div>
-                  <div class="thumb" @click="openImagePreview(circle)">
+
+                  <div class="thumb" @click.stop="openImagePreview(circle)">
                     <img :src="(circle.images && circle.images.length > 0) ? circle.images[0] : (circle.image || 'https://placehold.jp/24/cccccc/ffffff/635x903.png?text=NoImage')" />
                   </div>
                   <div class="info">
                     <div class="title-row">
-                      <h3 x-text="circle.name" @click="openEditForm(circle)"></h3>
+                      <h3 x-text="circle.name"></h3>
                       <span class="priority-stars" x-show="(circle.priority || 0) > 0">
                         <template x-for="i in (circle.priority || 0)"><span class="material-icons-round">star</span></template>
                       </span>
@@ -145,8 +148,7 @@
 
                     <div>
                       <template x-for="(item, idx) in circle.items" :key="idx">
-                        <div class="item-row" :class="{ 'done': item.isChecked }" @click="toggleItemCheck(circle.id, idx)">
-                          <span class="material-icons-round" style="font-size: 16px" x-text="item.isChecked ? 'check_circle' : 'radio_button_unchecked'"></span>
+                        <div class="item-row" :class="{ 'done': item.isChecked }">
                           <span class="item-name" x-text="item.name"></span>
                           <span class="price">¥<span x-text="item.price.toLocaleString()"></span></span>
                         </div>
@@ -154,19 +156,30 @@
                     </div>
                   </div>
                 </article>
+
+                <div class="context-menu" x-show="activeCircleContextId === circle.id" @click.away="activeCircleContextId = null" x-transition.opacity>
+                  <button @click="openEditForm(circle); activeCircleContextId = null;" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
+                  <button @click="deleteCircle(circle.id)" class="context-btn del" :title="t('delete')"><span class="material-icons-round">delete</span></button>
+                </div>
               </div>
             </template>
           </div>
         </main>
 
-        <section class="form-pane" x-show="isFormOpen" x-transition x-cloak>
+        <section class="form-pane" x-show="isFormOpen" x-transition.opacity x-cloak>
           <div class="form-card">
             <div class="form-row">
               <div class="form-col">
                 <input type="text" x-model="newName" :placeholder="t('circleName')" class="input-flat" />
-                <div style="display: flex; gap: 4px">
-                  <input type="text" x-model="newSpace" :placeholder="t('space')" class="input-flat" style="width: 40%" />
-                  <input type="text" x-model="newGenre" :placeholder="t('genre')" class="input-flat" style="flex: 1" />
+
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <input type="text" x-model="newSpace" :placeholder="t('space')" class="input-flat" style="flex: 1" />
+                  <div class="star-rating" style="flex-shrink: 0; padding-right: 4px">
+                    <button type="button" class="icon-btn star" :class="{'active': newPriority >= 1}" @click="newPriority = 1"><span class="material-icons-round">star</span></button>
+                    <button type="button" class="icon-btn star" :class="{'active': newPriority >= 2}" @click="newPriority = 2"><span class="material-icons-round">star</span></button>
+                    <button type="button" class="icon-btn star" :class="{'active': newPriority >= 3}" @click="newPriority = 3"><span class="material-icons-round">star</span></button>
+                    <button type="button" class="icon-btn clear" x-show="newPriority > 0" @click="newPriority = 0"><span class="material-icons-round">close</span></button>
+                  </div>
                 </div>
 
                 <div class="links-editor" style="display: flex; flex-direction: column; gap: 4px">
@@ -191,16 +204,6 @@
                 <span class="material-icons-round">add_photo_alternate</span>
                 <input type="file" @change="handleImageSelect" accept="image/*" multiple hidden />
               </label>
-            </div>
-
-            <div class="form-row" style="margin-top: 4px">
-              <span class="group-label" style="min-width: 50px" x-text="t('priority')"></span>
-              <div class="star-rating">
-                <button type="button" class="icon-btn star" :class="{'active': newPriority >= 1}" @click="newPriority = 1"><span class="material-icons-round">star</span></button>
-                <button type="button" class="icon-btn star" :class="{'active': newPriority >= 2}" @click="newPriority = 2"><span class="material-icons-round">star</span></button>
-                <button type="button" class="icon-btn star" :class="{'active': newPriority >= 3}" @click="newPriority = 3"><span class="material-icons-round">star</span></button>
-                <button type="button" class="icon-btn clear" x-show="newPriority > 0" @click="newPriority = 0"><span class="material-icons-round">close</span></button>
-              </div>
             </div>
 
             <div class="item-editor" style="margin-top: 8px">
@@ -238,7 +241,50 @@
       </div>
     </div>
 
-    <div class="floating-modal info-modal" x-show="isAboutOpen" x-transition x-cloak @click="isAboutOpen = false">
+    <div class="floating-modal info-modal" x-show="isCircleDetailOpen" x-transition.opacity x-cloak @click="isCircleDetailOpen = false">
+      <div class="form-card about-card" style="height: auto; max-height: 85vh; display: flex; flex-direction: column" @click.stop>
+        <template x-if="selectedCircle">
+          <div style="display: flex; flex-direction: column; flex: 1; min-height: 0">
+            <header class="modal-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; flex-shrink: 0">
+              <div>
+                <h3 style="margin: 0; font-size: 18px; word-break: break-all" x-text="selectedCircle.name"></h3>
+                <div class="meta" style="margin-top: 8px">
+                  <span class="badge" x-text="selectedCircle.space"></span>
+                </div>
+              </div>
+              <button @click="isCircleDetailOpen = false" class="icon-btn"><span class="material-icons-round">close</span></button>
+            </header>
+
+            <div style="margin-bottom: 12px; display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0">
+              <template x-for="(lk, idx) in (selectedCircle.links && selectedCircle.links.length > 0 ? selectedCircle.links : (selectedCircle.link ? [selectedCircle.link] : []))" :key="idx">
+                <a :href="lk" target="_blank" rel="noopener noreferrer" class="badge link-badge">
+                  <span class="material-icons-round" style="font-size: 12px">link</span>
+                  <span x-text="lk"></span>
+                </a>
+              </template>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto; border-top: 1px solid var(--brd); padding-top: 12px; min-height: 0">
+              <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--mut)" x-text="t('purchaseList')"></h4>
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <template x-for="(item, idx) in selectedCircle.items" :key="idx">
+                  <label class="detail-item-card" :class="{ 'done': item.isChecked }" @click.prevent="toggleItemCheck(selectedCircle.id, idx)">
+                    <span class="material-icons-round" :style="item.isChecked ? 'color: var(--suc);' : 'color: var(--mut);'" style="font-size: 24px" x-text="item.isChecked ? 'check_circle' : 'radio_button_unchecked'"></span>
+                    <div style="flex: 1; min-width: 0">
+                      <div class="item-name" x-text="item.name"></div>
+                      <div class="price-tag" style="display: inline-block; margin-top: 4px; padding: 2px 8px; font-size: 14px">¥<span x-text="item.price.toLocaleString()"></span></div>
+                    </div>
+                  </label>
+                </template>
+                <div x-show="selectedCircle.items.length === 0" style="color: var(--mut); font-size: 13px" x-text="t('purchaseListEmpty')"></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div class="floating-modal info-modal" x-show="isAboutOpen" x-transition.opacity x-cloak @click="isAboutOpen = false">
       <div class="form-card about-card" @click.stop>
         <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center">
           <h3 x-text="t('aboutApp')"></h3>
@@ -329,7 +375,7 @@
       </div>
     </div>
 
-    <div class="floating-modal image-modal" x-show="previewImages.length > 0" x-transition x-cloak @click="previewImages = []">
+    <div class="floating-modal image-modal" x-show="previewImages.length > 0" x-transition.opacity x-cloak @click="previewImages = []">
       <button class="icon-btn light modal-close-btn" @click.stop="previewImages = []"><span class="material-icons-round">close</span></button>
       <button class="slider-btn prev" x-show="previewImages.length > 1" @click.stop="prevPreview()"><span class="material-icons-round">chevron_left</span></button>
       <div class="preview-window" @click.stop><img :src="previewImages[previewIndex]" :style="imgStyles" @load="updateImgStyle" /></div>
@@ -341,7 +387,7 @@
       </div>
     </div>
 
-    <div class="floating-modal event-modal" x-show="isEventModalOpen" x-transition x-cloak @click="isEventModalOpen = false">
+    <div class="floating-modal event-modal" x-show="isEventModalOpen" x-transition.opacity x-cloak @click="isEventModalOpen = false">
       <div class="form-card event-form" @click.stop>
         <header class="modal-header"><h3 x-text="editingEventId ? t('edit') : t('newEvent')"></h3></header>
         <div class="form-row">

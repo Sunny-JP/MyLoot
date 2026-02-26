@@ -11,7 +11,7 @@ export interface Circle {
   eventId: number;
   name: string;
   space: string;
-  genre: string;
+  genre?: string;
   link?: string;
   links?: string[];
   image?: string;
