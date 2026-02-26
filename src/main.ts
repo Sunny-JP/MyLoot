@@ -50,6 +50,7 @@ document.addEventListener('alpine:init', () => {
     isAboutOpen: false,
     aboutTab: 'usage',
 
+    // --- PDFズーム関連の修正 ---
     pdfZoom: 1.0,
     initialPinchDist: 0,
     initialPinchZoom: 1.0,
@@ -67,15 +68,19 @@ document.addEventListener('alpine:init', () => {
         const wrapper = document.getElementById('pdf-scroll-wrapper');
         if (wrapper) {
           const rect = wrapper.getBoundingClientRect();
-          this.pinchCenterX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - rect.left + wrapper.scrollLeft;
-          this.pinchCenterY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - rect.top + wrapper.scrollTop;
+          const clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          
+          // コンテナ内における指の中心の絶対座標を記録
+          this.pinchCenterX = wrapper.scrollLeft + (clientX - rect.left);
+          this.pinchCenterY = wrapper.scrollTop + (clientY - rect.top);
         }
       }
     },
     
     handleTouchMove(e: TouchEvent) {
       if (e.touches.length === 2) {
-        e.preventDefault();
+        e.preventDefault(); // ブラウザデフォルトのズームを防止
         const wrapper = document.getElementById('pdf-scroll-wrapper');
         if (!wrapper) return;
 
@@ -89,11 +94,26 @@ document.addEventListener('alpine:init', () => {
         if (newZoom !== this.pdfZoom) {
           const zoomDelta = newZoom / this.pdfZoom;
           this.pdfZoom = newZoom;
-          wrapper.scrollLeft = (this.pinchCenterX * zoomDelta) - (this.pinchCenterX - wrapper.scrollLeft);
-          wrapper.scrollTop = (this.pinchCenterY * zoomDelta) - (this.pinchCenterY - wrapper.scrollTop);
+
+          // ズーム後の新しい座標を計算
+          const newPinchCenterX = this.pinchCenterX * zoomDelta;
+          const newPinchCenterY = this.pinchCenterY * zoomDelta;
+
+          const rect = wrapper.getBoundingClientRect();
+          const clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          
+          // 指の中心がズレないようにスクロール位置を調整
+          wrapper.scrollLeft = newPinchCenterX - (clientX - rect.left);
+          wrapper.scrollTop = newPinchCenterY - (clientY - rect.top);
+
+          // 次のMoveのために基準を更新
+          this.pinchCenterX = newPinchCenterX;
+          this.pinchCenterY = newPinchCenterY;
         }
       }
     },
+    // ---------------------------
 
     get mapPaneStyle() {
       if (window.innerWidth >= 900) {
@@ -145,6 +165,7 @@ document.addEventListener('alpine:init', () => {
             const ctx = canvas.getContext('2d');
             if (!ctx) continue;
 
+            // 解像度を上げてクッキリさせる (scale: 4.0)
             const viewport = page.getViewport({ scale: 4.0 });
             canvas.height = viewport.height;
             canvas.width = viewport.width;

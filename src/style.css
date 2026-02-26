@@ -118,9 +118,7 @@ input, button, select { font-family: inherit; }
   -webkit-overflow-scrolling: touch;
 }
 
-.pdf-canvas-container {
-  transform-origin: 0 0;
-  width: 100%;
+#pdf-canvas-container {
   padding: 8px;
   box-sizing: border-box;
 }
