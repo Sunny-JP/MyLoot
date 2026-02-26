@@ -63,7 +63,7 @@
         <button @click="isMenuOpen = true" class="icon-btn light"><span class="material-icons-round">menu</span></button>
         <div class="title-group">
           <small x-text="currentEvent?.name"></small>
-          <h1 x-text="t('purchaseList')"></h1>
+          <h1 x-text="t('siteTitle')"></h1>
         </div>
         <div class="price-tag">¥<span x-text="totalPrice.toLocaleString()"></span></div>
       </header>
@@ -76,7 +76,7 @@
               <div class="btn-group">
                 <button @click="openAddForm()" class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span></button>
                 <button @click="toggleDeleteMode()" class="btn-tool" :title="t('select')"><span class="material-icons-round">checklist</span></button>
-                <button @click="toggleColumns()" class="btn-tool" title="表示切替"><span class="material-icons-round" x-text="columns === 1 ? 'grid_view' : 'view_list'"></span></button>
+                <button @click="toggleColumns()" class="btn-tool" :title="t('listGrid')"><span class="material-icons-round" x-text="columns === 1 ? 'grid_view' : 'view_list'"></span></button>
               </div>
             </div>
 
@@ -363,7 +363,7 @@
               <p x-text="t('devInfo')"></p>
               <div class="link">
                 <a href="https://x.com/156miyako" target="_blank" rel="noopener" class="badge link-badge"> <span class="material-icons-round" style="font-size: 14px; margin-right: 4px">link</span>X: @156miyako </a>
-                <a href="https://github.com/SunnyYatSu/comiket-manager" target="_blank" rel="noopener" class="badge link-badge"> <span class="material-icons-round" style="font-size: 14px; margin-right: 4px">code</span>GitHub </a>
+                <a href="https://github.com/Sunny-JP/r1c-MyLoot" target="_blank" rel="noopener" class="badge link-badge"> <span class="material-icons-round" style="font-size: 14px; margin-right: 4px">code</span>GitHub </a>
               </div>
             </section>
             <section>
