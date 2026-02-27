@@ -52,8 +52,8 @@ input, button, select { font-family: inherit; }
 .map-body { flex: 1; width: 100%; height: 100%; background: var(--bg); position: relative; overflow: hidden; }
 
 .pdf-scroll-wrapper { width: 100%; height: 100%; overflow: auto; position: relative; -webkit-overflow-scrolling: touch; }
-#pdf-canvas-container { padding: 8px; box-sizing: border-box; }
-.pdf-page-canvas { width: 100%; height: auto; display: block; margin-bottom: 8px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+#pdf-canvas-container { padding: 0; box-sizing: border-box; }
+.pdf-page-canvas { width: 100%; height: auto; display: block; margin-bottom: 2px; background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
 @media (min-width: 900px) {
   .content-split { flex-direction: row !important; }

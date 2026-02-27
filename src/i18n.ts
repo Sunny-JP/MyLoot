@@ -21,7 +21,7 @@ export const translations = {
     deleteOneCircleConfirm: 'このサークルを削除しますか？',
     deleteSelectedConfirm: '件のサークルを削除しますか？',
     deletePdfConfirm: 'PDFを削除しますか？',
-    mapEmpty: 'PDFをアップロードしてください',
+    mapEmpty: '配置図PDFをアップロードしてください',
     openInBrowser: '外部ブラウザで開く',
     edit: '編集',
     duplicate: '複製',
