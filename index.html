@@ -305,21 +305,26 @@
         </nav>
         <div class="about-content">
           <div x-show="aboutTab === 'usage'" class="tab-pane">
-            <section><p x-text="t('usageIntro')"></p></section>
+            <section><p x-text="t('usageIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
+
             <section>
               <h4 x-text="t('usageStep1Title')"></h4>
               <ul>
                 <li x-text="t('usageStep1Desc1')"></li>
                 <li x-text="t('usageStep1Desc2')"></li>
+                <li x-text="t('usageStep1Desc3')"></li>
               </ul>
             </section>
+
             <section>
               <h4 x-text="t('usageStep2Title')"></h4>
               <ul>
                 <li x-text="t('usageStep2Desc1')"></li>
                 <li x-text="t('usageStep2Desc2')"></li>
+                <li x-text="t('usageStep2Desc3')"></li>
               </ul>
             </section>
+
             <section>
               <h4 x-text="t('usageStep3Title')"></h4>
               <ul>
@@ -328,9 +333,18 @@
                 <li x-text="t('usageStep3Desc3')"></li>
               </ul>
             </section>
+
+            <section>
+              <h4 x-text="t('usageStep4Title')"></h4>
+              <ul>
+                <li x-text="t('usageStep4Desc1')"></li>
+                <li x-text="t('usageStep4Desc2')"></li>
+              </ul>
+            </section>
           </div>
 
           <div x-show="aboutTab === 'terms'" class="tab-pane">
+            <section><p x-text="t('termsIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
             <section>
               <h4 x-text="t('termsSec1Title')"></h4>
               <ul>
@@ -343,23 +357,37 @@
               <ul>
                 <li x-text="t('termsSec2Desc1')"></li>
                 <li x-text="t('termsSec2Desc2')"></li>
+                <li x-text="t('termsSec2Desc3')"></li>
               </ul>
             </section>
             <section>
               <h4 x-text="t('termsSec3Title')"></h4>
               <ul>
                 <li x-text="t('termsSec3Desc1')"></li>
-                <li x-text="t('termsSec3Desc2')"></li>
+              </ul>
+            </section>
+            <section>
+              <h4 x-text="t('termsSec4Title')"></h4>
+              <ul>
+                <li x-text="t('termsSec4Desc1')"></li>
+                <li x-text="t('termsSec4Desc2')"></li>
               </ul>
             </section>
           </div>
 
           <div x-show="aboutTab === 'policy'" class="tab-pane">
+            <section><p x-text="t('policyIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
             <section>
               <h4 x-text="t('policySec1Title')"></h4>
               <ul>
                 <li x-text="t('policySec1Desc1')"></li>
                 <li x-text="t('policySec1Desc2')"></li>
+              </ul>
+            </section>
+            <section>
+              <h4 x-text="t('policySec2Title')"></h4>
+              <ul>
+                <li x-text="t('policySec2Desc1')"></li>
               </ul>
             </section>
           </div>
