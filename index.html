@@ -150,7 +150,7 @@
                     <div class="meta">
                       <span class="badge" x-text="circle.space"></span>
                       <template x-for="(lk, idx) in (circle.links && circle.links.length > 0 ? circle.links : (circle.link ? [circle.link] : []))" :key="idx">
-                        <a :href="lk" target="_blank" rel="noopener noreferrer" class="badge link-badge">
+                        <a :href="lk" target="_blank" rel="noopener noreferrer" class="badge link-badge" @click.stop>
                           <span class="material-icons-round" style="font-size: 12px">link</span>
                           <span x-text="(circle.links && circle.links.length > 1) ? (idx + 1) : '1'"></span>
                         </a>
