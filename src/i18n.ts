@@ -59,7 +59,7 @@ export const translations = {
     usageStep3Desc3: '画面上側のツールバーから、リストの表示順（配置順、名前順、優先度順）を切り替えて効率よく回りましょう。',
     usageStep4Title: '4. データのエクスポート',
     usageStep4Desc1: '入力したデータはすべてお使いの端末(ブラウザ内)にのみ保存されます。',
-    usageStep4Desc2: 'ブラウザの履歴やキャッシュを削除するとデータも消えてしまうため、メニューの「エクスポート」から定期的にJSONファイルとして保存してください。保存したファイルはバックアップのほか、別端末への引き継ぎや、友人との共有にも使えます。',
+    usageStep4Desc2: 'ブラウザの履歴やキャッシュを削除するとデータも消えてしまうため、メニューの「エクスポート」から定期的にJSONファイルとして保存してください。保存したファイルはバックアップのほか、別端末への引き継ぎや、友人との共有にも使えます。(PDFデータは含まれませんのでご注意ください。)',
     
     termsIntro: 'この利用規約（以下、「本規約」といいます。）は、本アプリ（以下、「本サービス」といいます。）の利用条件を定めるものです。',
     termsSec1Title: '1. 免責事項',
@@ -85,7 +85,9 @@ export const translations = {
     devTeam: '開発・運営',
     devInfo: 'Sunny',
     feedbackTitle: 'フィードバック',
-    feedbackDesc: '不具合の報告やご要望は、 X または GitHub までお寄せください。'
+    feedbackDesc: '不具合の報告やご要望は、 X または GitHub までお寄せください。',
+    loot: '名前の由来',
+    lootMean: '日本語読みでは同じような響きを持つ「Route = 道順」「Loot = 戦利品」から、イベント会場を効率よく回るための「道順」と、そこで得られる「戦利品」を管理するアプリ、という意味を込めて名付けました。'
   },
   en: {
     siteTitle: 'MyLoot',
@@ -147,7 +149,7 @@ export const translations = {
     usageStep3Desc3: 'Use the top toolbar to sort the list (by space, name, or priority) to navigate efficiently.',
     usageStep4Title: '4. Data Export',
     usageStep4Desc1: 'All data is stored locally in your browser.',
-    usageStep4Desc2: 'Clearing your browser cache will delete your data. Use "Export" in the menu to save your data as a JSON file. This file can be used for backup, transferring to another device, or sharing with friends.',
+    usageStep4Desc2: 'Clearing your browser cache will delete your data. Use "Export" in the menu to save your data as a JSON file. This file can be used for backup, transferring to another device, or sharing with friends. (Note: PDF data is not included.)',
 
     termsIntro: 'These Terms of Use ("Terms") govern your use of this application ("Service").',
     termsSec1Title: '1. Disclaimer',
@@ -173,7 +175,9 @@ export const translations = {
     devTeam: 'Development',
     devInfo: 'Sunny',
     feedbackTitle: 'Feedback',
-    feedbackDesc: 'Please send bug reports or requests to X or GitHub. We appreciate your feedback.'
+    feedbackDesc: 'Please send bug reports or requests to X or GitHub. We appreciate your feedback.',
+    loot: 'Name Origin',
+    lootMean: 'The name "MyLoot" is derived from the similar-sounding Japanese words for "Route" (the path to efficiently navigate the event) and "Loot" (the treasures/items obtained at the event). It reflects the app\'s purpose of managing both your route and your loot at events.'
   }
 };
 
