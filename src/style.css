@@ -244,3 +244,6 @@ select.input-flat:focus { border-color: var(--p); box-shadow: 0 0 0 1px var(--p)
   .about-tabs button:hover { color: var(--p); background: var(--sel-bg); }
   .slider-btn:hover { background: rgba(0, 0, 0, 0.8); }
 }
+@media (hover: none) and (pointer: coarse) {
+  .circle-card:active, .detail-item-card:active, .event-card:active { background: var(--sel-bg); opacity: 0.8; transition-delay: 0.15s; }
+}
