@@ -3,11 +3,12 @@ import Dexie, { type Table } from 'dexie';
 export interface Item {
   name: string;
   price: number;
+  quantity: number;
   isChecked: boolean;
 }
 
 export interface Circle {
-  id?: number;
+  uuid: string;
   eventId: number;
   name: string;
   space: string;
@@ -18,7 +19,6 @@ export interface Circle {
   images?: string[];
   items: Item[];
   isChecked: boolean;
-  priority?: number; 
 }
 
 export interface EventFolder {
@@ -28,15 +28,22 @@ export interface EventFolder {
   mapPdf?: Blob;
 }
 
+export interface EventOrder {
+  eventId: number;
+  circleUuids: string[];
+}
+
 export class AppDB extends Dexie {
-  circles!: Table<Circle>;
-  events!: Table<EventFolder>;
+  circles!: Table<Circle, string>;
+  events!: Table<EventFolder, number>;
+  eventOrders!: Table<EventOrder, number>;
 
   constructor() {
-    super('ComiketManagerV5');
+    super('MyLootDB');
     this.version(1).stores({
-      circles: '++id, eventId, name, isChecked, space',
-      events: '++id, name'
+      circles: 'uuid, eventId',
+      events: '++id',
+      eventOrders: 'eventId'
     });
   }
 }

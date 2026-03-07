@@ -9,7 +9,6 @@
     <meta name="theme-color" content="#020166" />
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/main.ts"></script>
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-0P3SKTXEWX"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -50,7 +49,7 @@
             </div>
           </div>
         </template>
-        <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px;"><span class="material-icons-round">add</span> <span x-text="t('newEvent')"></span></button>
+        <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px"><span class="material-icons-round">add</span> <span x-text="t('newEvent')"></span></button>
       </nav>
       <footer class="side-footer">
         <div style="display: flex; gap: 4px; margin-bottom: 8px">
@@ -81,59 +80,50 @@
 
       <div class="content-split" id="split-container">
         <main class="list-pane" id="list-pane">
-          <div class="toolbar">
-            <div class="btn-group-container" x-show="!isDeleteMode">
-              <span class="group-label">Circles</span>
-              <div class="btn-group">
-                <button @click="openAddForm()" class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span></button>
-                <button @click="toggleDeleteMode()" class="btn-tool" :title="t('select')"><span class="material-icons-round">checklist</span></button>
-                <button @click="toggleColumns()" class="btn-tool" :title="t('listGrid')"><span class="material-icons-round" x-text="columns === 1 ? 'grid_view' : 'view_list'"></span></button>
+          <div class="toolbar-container" x-data="{ isToolbarOpen: true }">
+            <div class="toolbar" x-show="isToolbarOpen" x-transition.collapse>
+              <div class="btn-group-container" x-show="!isDeleteMode">
+                <span class="group-label">Circles</span>
+                <div class="btn-group">
+                  <button @click="openAddForm()" class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span></button>
+                  <button @click="toggleDeleteMode()" class="btn-tool" :title="t('select')"><span class="material-icons-round">checklist</span></button>
+                  <button @click="toggleColumns()" class="btn-tool" :title="t('listGrid')"><span class="material-icons-round" x-text="columns === 1 ? 'grid_view' : 'view_list'"></span></button>
+                </div>
               </div>
-            </div>
 
-            <div class="btn-group-container" x-show="isDeleteMode" x-cloak>
-              <span class="group-label">Select</span>
-              <div class="btn-group">
-                <button @click="selectAll()" class="btn-tool" :title="t('selectAll')"><span class="material-icons-round">done_all</span></button>
-                <button @click="deselectAll()" class="btn-tool" :title="t('deselectAll')"><span class="material-icons-round">remove_done</span></button>
-                <button @click="deleteSelected()" class="btn-tool danger" :title="t('delete')"><span class="material-icons-round">delete</span></button>
-                <button @click="toggleDeleteMode()" class="btn-tool" :title="t('cancel')"><span class="material-icons-round">close</span></button>
+              <div class="btn-group-container" x-show="isDeleteMode" x-cloak>
+                <span class="group-label">Select</span>
+                <div class="btn-group">
+                  <button @click="selectAll()" class="btn-tool" :title="t('selectAll')"><span class="material-icons-round">done_all</span></button>
+                  <button @click="deselectAll()" class="btn-tool" :title="t('deselectAll')"><span class="material-icons-round">remove_done</span></button>
+                  <button @click="deleteSelected()" class="btn-tool danger" :title="t('delete')"><span class="material-icons-round">delete</span></button>
+                  <button @click="toggleDeleteMode()" class="btn-tool" :title="t('cancel')"><span class="material-icons-round">close</span></button>
+                </div>
               </div>
-            </div>
 
-            <div class="btn-group-container" x-show="!isDeleteMode">
-              <span class="group-label">Sort</span>
-              <div class="btn-group">
-                <button @click="setSortOrder('space')" class="btn-tool" :class="{ 'active': sortOrder === 'space' }" :title="t('sortSpace')">
-                  <span class="material-icons-round">place</span>
-                  <span class="material-icons-round sort-arrow" x-show="sortOrder === 'space'" x-text="sortAsc ? 'arrow_downward' : 'arrow_upward'"></span>
-                </button>
-                <button @click="setSortOrder('name')" class="btn-tool" :class="{ 'active': sortOrder === 'name' }" :title="t('sortName')">
-                  <span class="material-icons-round">sort_by_alpha</span>
-                  <span class="material-icons-round sort-arrow" x-show="sortOrder === 'name'" x-text="sortAsc ? 'arrow_downward' : 'arrow_upward'"></span>
-                </button>
-                <button @click="setSortOrder('priority')" class="btn-tool" :class="{ 'active': sortOrder === 'priority' }" :title="t('sortPriority')">
-                  <span class="material-icons-round">star</span>
-                  <span class="material-icons-round sort-arrow" x-show="sortOrder === 'priority'" x-text="sortAsc ? 'arrow_downward' : 'arrow_upward'"></span>
-                </button>
+              <div class="btn-group-container" x-show="!isDeleteMode">
+                <span class="group-label">Map PDF</span>
+                <div class="btn-group">
+                  <label class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span><input type="file" @change="uploadMapPdf" accept="application/pdf" hidden /></label>
+                  <button @click="resetMapPdf()" class="btn-tool danger" x-show="pdfUrl" :title="t('delete')"><span class="material-icons-round">delete</span></button>
+                </div>
               </div>
             </div>
-
-            <div class="btn-group-container" x-show="!isDeleteMode">
-              <span class="group-label">Map PDF</span>
-              <div class="btn-group">
-                <label class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span><input type="file" @change="uploadMapPdf" accept="application/pdf" hidden /></label>
-                <button @click="resetMapPdf()" class="btn-tool danger" x-show="pdfUrl" :title="t('delete')"><span class="material-icons-round">delete</span></button>
-              </div>
-            </div>
+            <button @click="isToolbarOpen = !isToolbarOpen" class="toolbar-tab">
+              <span class="material-icons-round" x-text="isToolbarOpen ? 'expand_less' : 'expand_more'"></span>
+            </button>
           </div>
 
-          <div class="circles-grid" :class="{ 'grid-2col': columns === 2 }">
-            <template x-for="circle in circles" :key="circle.id">
-              <div class="circle-wrapper" @contextmenu.prevent="if(!isDeleteMode) activeCircleContextId = (activeCircleContextId === circle.id ? null : circle.id)" @touchstart="handleCircleLongPressStart(circle.id)" @touchend="handleCircleLongPressEnd()">
-                <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingId === circle.id }" @click="openCircleDetail(circle)">
+          <div class="circles-grid" :class="{ 'grid-2col': columns === 2 }" id="sortable-grid">
+            <template x-for="circle in circles" :key="circle.uuid">
+              <div class="circle-wrapper" :data-uuid="circle.uuid" @contextmenu.prevent="if(!isDeleteMode) activeCircleContextId = (activeCircleContextId === circle.uuid ? null : circle.uuid)" @touchstart="handleCircleLongPressStart(circle.uuid)" @touchend="handleCircleLongPressEnd()" @touchcancel="handleCircleLongPressEnd()" @touchmove="handleCircleLongPressEnd()">
+                <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingUuid === circle.uuid }" @click="openCircleDetail(circle)">
+                  <div class="top-right-actions" x-show="!isDeleteMode" @click.stop @touchstart.stop>
+                    <span class="badge" x-show="circle.space" x-text="circle.space" style="font-size: 11px; padding: 2px 6px; min-height: 20px"></span>
+                  </div>
+
                   <div x-show="isDeleteMode" class="selector-box" x-transition.opacity @click.stop>
-                    <input type="checkbox" :value="circle.id" x-model="selectedIds" />
+                    <input type="checkbox" :value="circle.uuid" x-model="selectedUuids" />
                   </div>
 
                   <div class="thumb" @click.stop="openImagePreview(circle)">
@@ -142,35 +132,23 @@
                   <div class="info">
                     <div class="title-row">
                       <h3 x-text="circle.name"></h3>
-                      <span class="priority-stars" x-show="(circle.priority || 0) > 0">
-                        <template x-for="i in (circle.priority || 0)"><span class="material-icons-round">star</span></template>
-                      </span>
-                    </div>
-
-                    <div class="meta">
-                      <span class="badge" x-text="circle.space"></span>
-                      <template x-for="(lk, idx) in (circle.links && circle.links.length > 0 ? circle.links : (circle.link ? [circle.link] : []))" :key="idx">
-                        <a :href="lk" target="_blank" rel="noopener noreferrer" class="badge link-badge" @click.stop>
-                          <span class="material-icons-round" style="font-size: 12px">link</span>
-                          <span x-text="(circle.links && circle.links.length > 1) ? (idx + 1) : '1'"></span>
-                        </a>
-                      </template>
                     </div>
 
                     <div>
                       <template x-for="(item, idx) in circle.items" :key="idx">
                         <div class="item-row" :class="{ 'done': item.isChecked }">
                           <span class="item-name" x-text="item.name"></span>
-                          <span class="price">¥<span x-text="item.price.toLocaleString()" style="margin-left: 2px"></span></span>
+                          <span x-show="item.quantity > 1" x-text="'x' + item.quantity" style="color: var(--mut); font-size: 12px; margin: 0 4px"></span>
+                          <span class="price">¥<span x-text="((item.price || 0) * (item.quantity || 1)).toLocaleString()" style="margin-left: 2px"></span></span>
                         </div>
                       </template>
                     </div>
                   </div>
                 </article>
 
-                <div class="context-menu" x-show="activeCircleContextId === circle.id" @click.away="activeCircleContextId = null" x-transition.opacity>
+                <div class="context-menu" x-show="activeCircleContextId === circle.uuid" @click.away="activeCircleContextId = null" x-transition.opacity>
                   <button @click="openEditForm(circle); activeCircleContextId = null;" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
-                  <button @click="deleteCircle(circle.id)" class="context-btn del" :title="t('delete')"><span class="material-icons-round">delete</span></button>
+                  <button @click="deleteCircle(circle.uuid)" class="context-btn del" :title="t('delete')"><span class="material-icons-round">delete</span></button>
                 </div>
               </div>
             </template>
@@ -185,19 +163,13 @@
 
                 <div style="display: flex; gap: 8px; align-items: center">
                   <input type="text" x-model="newSpace" :placeholder="t('space')" class="input-flat" style="flex: 1" />
-                  <div class="star-rating" style="flex-shrink: 0">
-                    <button type="button" class="icon-btn star" :class="{'active': newPriority >= 1}" @click="newPriority = 1"><span class="material-icons-round">star</span></button>
-                    <button type="button" class="icon-btn star" :class="{'active': newPriority >= 2}" @click="newPriority = 2"><span class="material-icons-round">star</span></button>
-                    <button type="button" class="icon-btn star" :class="{'active': newPriority >= 3}" @click="newPriority = 3"><span class="material-icons-round">star</span></button>
-                    <button type="button" class="icon-btn clear" @click="newPriority = 0"><span class="material-icons-round">close</span></button>
-                  </div>
                 </div>
 
                 <div class="links-editor" style="display: flex; flex-direction: column; gap: 4px">
                   <template x-for="(lk, index) in newLinks" :key="index">
                     <div style="display: flex; gap: 4px">
                       <input type="url" x-model="lk.url" @input="checkAutoAddLink(index)" :placeholder="t('url')" class="input-flat" style="flex: 1" />
-                      <button type="button" @click="removeLinkInForm(index)" class="icon-btn clear"><span class="material-icons-round">close</span></button>
+                      <button type="button" @click="removeLinkInForm(index)" class="icon-btn clear"><span class="material-icons-round">remove</span></button>
                     </div>
                   </template>
                 </div>
@@ -219,16 +191,19 @@
 
             <div class="item-editor">
               <template x-for="(item, index) in newItems" :key="index">
-                <div class="item-input-row">
-                  <input type="text" x-model="item.name" @input="checkAutoAdd(index)" :placeholder="t('itemName')" class="input-flat" style="flex: 1" />
-                  <input type="number" x-model="item.price" :placeholder="t('price')" class="input-flat" style="width: 80px" />
-                  <button type="button" @click="removeItemInForm(index)" class="icon-btn clear"><span class="material-icons-round">close</span></button>
+                <div class="item-input-row" style="align-items: center">
+                  <input type="text" x-model="item.name" @input="checkAutoAdd(index)" :placeholder="t('itemName')" class="input-flat" style="flex: 1; min-width: 0" />
+                  <span style="color: var(--mut); font-size: 12px; padding: 0 4px">@</span>
+                  <input type="number" x-model="item.price" :placeholder="t('price')" class="input-flat text-right" style="width: 55px" />
+                  <span style="color: var(--mut); font-size: 12px; padding: 0 4px">x</span>
+                  <input type="number" x-model="item.quantity" :placeholder="t('quantity')" class="input-flat text-right" style="width: 40px" />
+                  <button type="button" @click="removeItemInForm(index)" class="icon-btn clear"><span class="material-icons-round">remove</span></button>
                 </div>
               </template>
             </div>
             <div class="form-footer">
-              <button @click="saveCircle()" class="btn-pill primary" style="flex: 1" x-text="editingId ? t('update') : t('addToList')"></button>
-              <button @click="isFormOpen = false; editingId = null" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
+              <button @click="saveCircle()" class="btn-pill primary" style="flex: 1" x-text="editingUuid ? t('update') : t('addToList')"></button>
+              <button @click="isFormOpen = false; editingUuid = null" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
             </div>
           </div>
         </section>
@@ -269,17 +244,19 @@
                   </template>
                 </div>
               </div>
-              <button @click="isCircleDetailOpen = false" class="icon-btn" style="flex-shrink: 0"><span class="material-icons-round">close</span></button>
             </header>
 
             <div style="flex: 1; overflow-y: auto; padding-top: 2px; min-height: 0">
               <div style="display: flex; flex-direction: column; gap: 6px">
                 <template x-for="(item, idx) in selectedCircle.items" :key="idx">
-                  <label class="detail-item-card" :class="{ 'done': item.isChecked }" @click.prevent="toggleItemCheck(selectedCircle.id, idx)">
+                  <label class="detail-item-card" :class="{ 'done': item.isChecked }" @click.prevent="toggleItemCheck(selectedCircle.uuid, idx)">
                     <span class="material-icons-round" :style="item.isChecked ? 'color: var(--suc);' : 'color: var(--mut);'" style="font-size: 24px" x-text="item.isChecked ? 'check_circle' : 'radio_button_unchecked'"></span>
                     <div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px">
-                      <div class="item-name" x-text="item.name" style="flex: 1; min-width: 0"></div>
-                      <div class="price-tag" style="padding: 2px 8px; font-size: 14px; flex-shrink: 0">¥<span x-text="item.price.toLocaleString()" style="margin-left: 2px"></span></div>
+                      <div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                        <div class="item-name" x-text="item.name"></div>
+                        <div style="font-size: 12px; color: var(--mut)"><span x-text="'@' + (item.price || 0).toLocaleString()"></span> x <span x-text="item.quantity || 1"></span></div>
+                      </div>
+                      <div class="price-tag" style="padding: 2px 8px; font-size: 14px; flex-shrink: 0">¥<span x-text="((item.price || 0) * (item.quantity || 1)).toLocaleString()" style="margin-left: 2px"></span></div>
                     </div>
                   </label>
                 </template>
@@ -295,7 +272,6 @@
       <div class="form-card about-card" @click.stop>
         <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center">
           <h3 x-text="t('aboutApp')"></h3>
-          <button @click="isAboutOpen = false" class="icon-btn"><span class="material-icons-round">close</span></button>
         </header>
         <nav class="about-tabs">
           <button @click="aboutTab = 'usage'" :class="{'active': aboutTab === 'usage'}" x-text="t('usage')"></button>
@@ -306,7 +282,6 @@
         <div class="about-content">
           <div x-show="aboutTab === 'usage'" class="tab-pane">
             <section><p x-text="t('usageIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
-
             <section>
               <h4 x-text="t('usageStep1Title')"></h4>
               <ul>
@@ -315,7 +290,6 @@
                 <li x-text="t('usageStep1Desc3')"></li>
               </ul>
             </section>
-
             <section>
               <h4 x-text="t('usageStep2Title')"></h4>
               <ul>
@@ -324,7 +298,6 @@
                 <li x-text="t('usageStep2Desc3')"></li>
               </ul>
             </section>
-
             <section>
               <h4 x-text="t('usageStep3Title')"></h4>
               <ul>
@@ -333,7 +306,6 @@
                 <li x-text="t('usageStep3Desc3')"></li>
               </ul>
             </section>
-
             <section>
               <h4 x-text="t('usageStep4Title')"></h4>
               <ul>
@@ -415,7 +387,6 @@
     </div>
 
     <div class="floating-modal image-modal" x-show="previewImages.length > 0" x-transition.opacity x-cloak @click="previewImages = []">
-      <button class="icon-btn light modal-close-btn" @click.stop="previewImages = []"><span class="material-icons-round">close</span></button>
       <button class="slider-btn prev" x-show="previewImages.length > 1" @click.stop="prevPreview()"><span class="material-icons-round">chevron_left</span></button>
       <div class="preview-window" @click.stop><img :src="previewImages[previewIndex]" :style="imgStyles" @load="updateImgStyle" /></div>
       <button class="slider-btn next" x-show="previewImages.length > 1" @click.stop="nextPreview()"><span class="material-icons-round">chevron_right</span></button>

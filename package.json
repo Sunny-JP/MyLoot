@@ -1,7 +1,7 @@
 {
   "name": "r1c-circle-manager",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@types/alpinejs": "^3.13.11",
+    "@types/sortablejs": "^1.15.9",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0"
@@ -20,6 +21,10 @@
     "alpinejs": "^3.15.8",
     "dexie": "^4.3.0",
     "material-icons": "^1.13.14",
-    "pdfjs-dist": "^5.4.624"
+    "pdfjs-dist": "^5.4.624",
+    "sortablejs": "^1.15.7"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.3"
   }
 }

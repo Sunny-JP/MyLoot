@@ -13,6 +13,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { db, processImage } from './db';
 import type { Circle, Item, EventFolder } from './db';
 import { translations, languageList, type Language } from './i18n';
+import Sortable from 'sortablejs';
 
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -35,24 +36,23 @@ document.addEventListener('alpine:init', () => {
     events: [] as EventFolder[],
     currentEvent: null as EventFolder | null,
     circles: [] as Circle[],
-    selectedIds: [] as number[],
+    selectedUuids: [] as string[],
     isMenuOpen: false, 
     isFormOpen: false, 
     isDeleteMode: false,
     pdfUrl: null as string | null,
-    editingId: null as number | null,
+    editingUuid: null as string | null,
     
     activeContextId: null as number | null,
     longPressTimer: undefined as number | undefined,
 
-    activeCircleContextId: null as number | null,
+    activeCircleContextId: null as string | null,
     circleLongPressTimer: undefined as number | undefined,
     isCircleDetailOpen: false,
     selectedCircle: null as Circle | null,
 
-    sortOrder: 'space' as 'space' | 'name' | 'priority',
-    sortAsc: true,
     eventSortDesc: true,
+    sortableInstance: null as any,
     
     pdfWidth: parseInt(localStorage.getItem('pdfWidth') || '40'),
     pdfHeight: parseInt(localStorage.getItem('pdfHeight') || '250'),
@@ -67,23 +67,32 @@ document.addEventListener('alpine:init', () => {
     pinchCenterX: 0,
     pinchCenterY: 0,
 
-    handleCircleLongPressStart(id: number) {
+    handleCircleLongPressStart(uuid: string) {
       if (this.isDeleteMode) return;
-      this.circleLongPressTimer = window.setTimeout(() => { this.activeCircleContextId = id; }, 600);
+      this.circleLongPressTimer = window.setTimeout(() => { this.activeCircleContextId = uuid; }, 600);
     },
     handleCircleLongPressEnd() {
-      window.clearTimeout(this.circleLongPressTimer);
+      if (this.circleLongPressTimer) {
+        window.clearTimeout(this.circleLongPressTimer);
+      }
     },
 
     openCircleDetail(circle: Circle) {
-      if (this.isDeleteMode || this.activeCircleContextId === circle.id) return;
+      if (this.isDeleteMode || this.activeCircleContextId === circle.uuid) return;
       this.selectedCircle = circle;
       this.isCircleDetailOpen = true;
     },
 
-    async deleteCircle(id: number) {
+    async deleteCircle(uuid: string) {
       if (!confirm(`${this.t('deleteOneCircleConfirm')}`)) return;
-      await db.circles.delete(id);
+      await db.circles.delete(uuid);
+      
+      const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
+      if (orderRecord) {
+        orderRecord.circleUuids = orderRecord.circleUuids.filter(u => u !== uuid);
+        await db.eventOrders.put(orderRecord);
+      }
+      
       this.activeCircleContextId = null;
       await this.refreshCircles();
     },
@@ -165,7 +174,6 @@ document.addEventListener('alpine:init', () => {
     newName: '',
     newSpace: '',
     newLinks: [{ url: '' }],
-    newPriority: 0,
     newItems: [] as Item[],
     newImagesPreview: [] as string[],
     newFile: null as File | null,
@@ -252,41 +260,47 @@ document.addEventListener('alpine:init', () => {
         });
 
         if (eventId) {
+          const uuid1 = crypto.randomUUID();
+          const uuid2 = crypto.randomUUID();
+          const uuid3 = crypto.randomUUID();
+
           await db.circles.bulkAdd([
             {
+              uuid: uuid1,
               eventId: eventId,
               name: this.lang === 'ja' ? 'サークルまいるーと' : 'Circle Mai-ruuto',
               space: '東A01a',
               links: ['https://www.pixiv.net/'],
-              priority: 3,
               isChecked: false,
               items: [
-                { name: this.lang === 'ja' ? '新刊セット' : 'New Book Set', price: 1000, isChecked: false },
-                { name: this.lang === 'ja' ? 'アクスタ' : 'Acrylic Stand', price: 500, isChecked: true }
+                { name: this.lang === 'ja' ? '新刊セット' : 'New Book Set', price: 1000, quantity: 1, isChecked: false },
+                { name: this.lang === 'ja' ? 'アクスタ' : 'Acrylic Stand', price: 500, quantity: 2, isChecked: true }
               ]
             },
             {
+              uuid: uuid2,
               eventId: eventId,
               name: this.lang === 'ja' ? 'TESTサークル' : 'Test Circle',
               space: '西あ12b',
               links: [],
               isChecked: false,
               items: [
-                { name: this.lang === 'ja' ? '既刊' : 'Previous Book', price: 500, isChecked: false }
+                { name: this.lang === 'ja' ? '既刊' : 'Previous Book', price: 500, quantity: 1, isChecked: false }
               ]
             },
             {
+              uuid: uuid3,
               eventId: eventId,
               name: this.lang === 'ja' ? '我道工房' : 'Waremichi Koubou',
               space: '南A34c',
               links: [],
-              priority: 1,
               isChecked: false,
               items: [
-                { name: this.lang === 'ja' ? '無配' : 'Free Book', price: 0, isChecked: false }
+                { name: this.lang === 'ja' ? '無配' : 'Free Book', price: 0, quantity: 1, isChecked: false }
               ]
             }
           ]);
+          await db.eventOrders.put({ eventId: eventId, circleUuids: [uuid1, uuid2, uuid3] });
         }
 
         await this.loadEvents();
@@ -357,13 +371,6 @@ document.addEventListener('alpine:init', () => {
       window.addEventListener('touchend', end);
     },
 
-    handleLongPressStart(id: number) {
-      this.longPressTimer = window.setTimeout(() => { this.activeContextId = id; }, 600);
-    },
-    handleLongPressEnd() {
-      window.clearTimeout(this.longPressTimer);
-    },
-
     toggleColumns() {
       this.columns = this.columns === 1 ? 2 : 1;
       localStorage.setItem('columns', this.columns.toString());
@@ -374,7 +381,7 @@ document.addEventListener('alpine:init', () => {
       if (event.id) localStorage.setItem('lastEventId', event.id.toString());
       this.activeContextId = null;
       this.isDeleteMode = false;
-      this.selectedIds = [];
+      this.selectedUuids = [];
       if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
       
       this.pdfUrl = event.mapPdf ? URL.createObjectURL(event.mapPdf) : null;
@@ -385,7 +392,7 @@ document.addEventListener('alpine:init', () => {
       await this.refreshCircles();
       this.isMenuOpen = false; 
       this.isFormOpen = false;
-      this.editingId = null;
+      this.editingUuid = null;
     },
 
     openEventCreateModal() {
@@ -424,16 +431,28 @@ document.addEventListener('alpine:init', () => {
     async duplicateEvent(event: EventFolder) {
       if (!event.id) return;
       const circles = await db.circles.where('eventId').equals(event.id).toArray();
+      const orderRecord = await db.eventOrders.get(event.id);
+      
       const newId = await db.events.add({ 
         name: event.name + ' (Copy)', 
         date: event.date, 
         mapPdf: event.mapPdf 
       });
+
+      const newUuidsMap = new Map<string, string>();
       for (const c of circles) {
-        delete c.id;
+        const oldUuid = c.uuid;
+        c.uuid = crypto.randomUUID();
         c.eventId = newId;
+        newUuidsMap.set(oldUuid, c.uuid);
         await db.circles.add(c);
       }
+
+      if (orderRecord) {
+        const newOrder = orderRecord.circleUuids.map(u => newUuidsMap.get(u)).filter(Boolean) as string[];
+        await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
+      }
+
       await this.loadEvents();
       this.activeContextId = null;
     },
@@ -442,59 +461,81 @@ document.addEventListener('alpine:init', () => {
       if (!confirm(this.t('deleteEventConfirm'))) return;
       await db.events.delete(id);
       await db.circles.where('eventId').equals(id).delete();
+      await db.eventOrders.delete(id);
       await this.init();
       this.activeContextId = null;
     },
 
-    setSortOrder(order: 'space' | 'name' | 'priority') {
-      if (this.sortOrder === order) {
-        this.sortAsc = !this.sortAsc;
-      } else {
-        this.sortOrder = order;
-        this.sortAsc = order === 'priority' ? false : true;
+    // Sortableの初期化とDOMリセット処理による確実な同期
+    initSortable() {
+      if (this.sortableInstance) {
+        (this.sortableInstance as any).destroy();
       }
-      this.refreshCircles();
+      const el = document.getElementById('sortable-grid');
+      if (!el) return;
+
+      let nextSibling: Node | null = null;
+
+      this.sortableInstance = Sortable.create(el, {
+        draggable: '.circle-wrapper', 
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        delay: 200,                // スマホのスクロールと誤爆しないよう長押しで発動
+        delayOnTouchOnly: true,
+        fallbackTolerance: 3,      // PCでのクリック(詳細を開く)をドラッグと誤認させない
+        onStart: (evt: any) => {
+          // ドラッグ開始時、元々自分の「次」にあった要素を記憶しておく
+          nextSibling = evt.item.nextSibling;
+        },
+        onEnd: async (evt: any) => {
+          if (evt.oldDraggableIndex === evt.newDraggableIndex) return;
+
+          // 1. Sortableが勝手に移動させたDOM要素を、一旦強引に元の位置に戻す
+          // （Alpine.js の管理する仮想DOMと現実のDOMのズレによるバグを防ぐため）
+          evt.from.removeChild(evt.item);
+          if (nextSibling) {
+            evt.from.insertBefore(evt.item, nextSibling);
+          } else {
+            evt.from.appendChild(evt.item);
+          }
+
+          // 2. その後、Alpine.jsの配列側を入れ替える
+          // これによりAlpine自身が正しい手順で再描画を行い、要素が暴れなくなる
+          const newCircles = [...this.circles];
+          const movedCircle = newCircles.splice(evt.oldDraggableIndex, 1)[0];
+          newCircles.splice(evt.newDraggableIndex, 0, movedCircle);
+          this.circles = newCircles;
+
+          // 3. DBに新しい順番を保存
+          if (this.currentEvent && this.currentEvent.id !== undefined) {
+            const newOrderUuids = this.circles.map(c => c.uuid);
+            await db.eventOrders.put({ eventId: this.currentEvent.id, circleUuids: newOrderUuids });
+          }
+        }
+      });
     },
 
     async refreshCircles() {
       if (this.currentEvent && this.currentEvent.id !== undefined) {
         let list = await db.circles.where('eventId').equals(this.currentEvent.id).toArray();
+        const orderRecord = await db.eventOrders.get(this.currentEvent.id);
         
-        const getSpaceRank = (space: string) => {
-          if (!space) return 99;
-          const char = space.charAt(0);
-          if (char === '東') return 1;
-          if (char === '西') return 2;
-          if (char === '南') return 3;
-          if (char === '北') return 4;
-          if (char === '企') return 5;
-          if (/[A-Za-z]/.test(char)) return 6;
-          if (/[あ-んア-ン]/.test(char)) return 7;
-          if (/[0-9]/.test(char)) return 8;
-          return 10;
-        };
-
-        list.sort((a, b) => {
-          let cmp = 0;
-          if (this.sortOrder === 'space') {
-            const rankA = getSpaceRank(a.space);
-            const rankB = getSpaceRank(b.space);
-            if (rankA !== rankB) {
-              cmp = rankA - rankB;
-            } else {
-              cmp = (a.space || '').localeCompare(b.space || '', 'ja', { numeric: true });
-            }
-          } else if (this.sortOrder === 'priority') {
-            const pA = a.priority || 0;
-            const pB = b.priority || 0;
-            cmp = pA - pB;
-          } else {
-            cmp = (a.name || '').localeCompare(b.name || '', 'ja');
-          }
-          return this.sortAsc ? cmp : -cmp;
-        });
+        if (orderRecord && orderRecord.circleUuids.length > 0) {
+          const orderMap = new Map();
+          orderRecord.circleUuids.forEach((uuid, index) => orderMap.set(uuid, index));
+          list.sort((a, b) => {
+            const indexA = orderMap.has(a.uuid) ? orderMap.get(a.uuid) : 99999;
+            const indexB = orderMap.has(b.uuid) ? orderMap.get(b.uuid) : 99999;
+            return indexA - indexB;
+          });
+        }
         
         this.circles = list;
+        
+        // 描画が完了したタイミングでSortableを初期化
+        setTimeout(() => {
+          this.initSortable();
+        }, 0);
       }
     },
 
@@ -529,24 +570,22 @@ document.addEventListener('alpine:init', () => {
     },
 
     openAddForm() {
-      this.editingId = null;
+      this.editingUuid = null;
       this.newName = '';
       this.newSpace = '';
       this.newLinks = [{ url: '' }];
-      this.newPriority = 0;
       this.newImagesPreview = [];
       this.newFile = null;
-      this.newItems = [{ name: '', price: 0, isChecked: false }];
+      this.newItems = [{ name: '', price: 0, quantity: 1, isChecked: false }];
       this.isFormOpen = true;
       this.isDeleteMode = false;
     },
 
     async openEditForm(circle: Circle) {
       if (this.isDeleteMode) return;
-      this.editingId = circle.id!;
+      this.editingUuid = circle.uuid;
       this.newName = circle.name;
       this.newSpace = circle.space;
-      this.newPriority = circle.priority || 0;
       this.newFile = null;
       
       this.newImagesPreview = circle.images && circle.images.length > 0 
@@ -559,9 +598,14 @@ document.addEventListener('alpine:init', () => {
         this.newLinks.push({ url: '' });
       }
 
-      this.newItems = JSON.parse(JSON.stringify(circle.items));
+      this.newItems = circle.items.map(i => ({
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity || 1,
+        isChecked: i.isChecked
+      }));
       if (this.newItems.length === 0 || this.newItems[this.newItems.length - 1].name !== '') {
-        this.newItems.push({ name: '', price: 0, isChecked: false });
+        this.newItems.push({ name: '', price: 0, quantity: 1, isChecked: false });
       }
       this.isFormOpen = true;
     },
@@ -586,6 +630,7 @@ document.addEventListener('alpine:init', () => {
       const validItems = this.newItems.filter(i => i.name.trim() !== '').map(i => ({
         name: i.name,
         price: Number(i.price) || 0,
+        quantity: Number(i.quantity) || 1,
         isChecked: i.isChecked || false
       }));
       
@@ -596,33 +641,39 @@ document.addEventListener('alpine:init', () => {
         genre: '',
         links: validLinks,
         link: validLinks.length > 0 ? validLinks[0] : '',
-        priority: Number(this.newPriority),
         items: validItems,
         isChecked: false,
         images: [...this.newImagesPreview],
         image: this.newImagesPreview.length > 0 ? this.newImagesPreview[0] : ''
       };
       
-      if (this.editingId) {
-        await db.circles.update(this.editingId, data);
+      if (this.editingUuid) {
+        data.uuid = this.editingUuid;
+        await db.circles.put(data);
       } else {
+        data.uuid = crypto.randomUUID();
         await db.circles.add(data);
+        
+        const orderRecord = await db.eventOrders.get(this.currentEvent.id);
+        const uuids = orderRecord ? orderRecord.circleUuids : [];
+        uuids.push(data.uuid);
+        await db.eventOrders.put({ eventId: this.currentEvent.id, circleUuids: uuids });
       }
       
       this.isFormOpen = false;
-      this.editingId = null;
+      this.editingUuid = null;
       await this.refreshCircles();
     },
 
-    async toggleItemCheck(circleId: number, itemIndex: number) {
+    async toggleItemCheck(circleUuid: string, itemIndex: number) {
       if (this.isDeleteMode) return;
-      const circle = await db.circles.get(circleId);
+      const circle = await db.circles.get(circleUuid);
       if (circle) {
         circle.items[itemIndex].isChecked = !circle.items[itemIndex].isChecked;
         await db.circles.put(circle);
         await this.refreshCircles();
 
-        if (this.selectedCircle && this.selectedCircle.id === circleId) {
+        if (this.selectedCircle && this.selectedCircle.uuid === circleUuid) {
           this.selectedCircle = circle;
         }
       }
@@ -630,19 +681,26 @@ document.addEventListener('alpine:init', () => {
 
     toggleDeleteMode() {
       this.isDeleteMode = !this.isDeleteMode;
-      if (!this.isDeleteMode) this.selectedIds = [];
+      if (!this.isDeleteMode) this.selectedUuids = [];
     },
     selectAll() {
-      this.selectedIds = this.circles.map(c => c.id!);
+      this.selectedUuids = this.circles.map(c => c.uuid);
     },
     deselectAll() {
-      this.selectedIds = [];
+      this.selectedUuids = [];
     },
     async deleteSelected() {
-      if (this.selectedIds.length === 0) return;
-      if (!confirm(`${this.selectedIds.length}${this.t('deleteSelectedConfirm')}`)) return;
-      await db.circles.bulkDelete(this.selectedIds.map(Number));
-      this.selectedIds = [];
+      if (this.selectedUuids.length === 0) return;
+      if (!confirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`)) return;
+      await db.circles.bulkDelete(this.selectedUuids);
+      
+      const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
+      if (orderRecord) {
+        orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
+        await db.eventOrders.put(orderRecord);
+      }
+      
+      this.selectedUuids = [];
       this.isDeleteMode = false;
       await this.refreshCircles();
     },
@@ -679,15 +737,21 @@ document.addEventListener('alpine:init', () => {
     removeItemInForm(index: number) { this.newItems.splice(index, 1); },
     checkAutoAdd(index: number) {
       if (index === this.newItems.length - 1 && this.newItems[index].name !== '') {
-        this.newItems.push({ name: '', price: 0, isChecked: false });
+        this.newItems.push({ name: '', price: 0, quantity: 1, isChecked: false });
       }
     },
     get totalPrice(): number {
-      return this.circles.reduce((sum, c) => sum + c.items.reduce((iSum, item) => iSum + (Number(item.price) || 0), 0), 0);
+      return this.circles.reduce((sum, c) => sum + c.items.reduce((iSum, item) => iSum + ((Number(item.price) || 0) * (Number(item.quantity) || 1)), 0), 0);
     },
     async exportData() {
-      if (!this.currentEvent) return;
-      const blob = new Blob([JSON.stringify({ event: this.currentEvent, circles: this.circles })], { type: 'application/json' });
+      if (!this.currentEvent || !this.currentEvent.id) return;
+      const orderRecord = await db.eventOrders.get(this.currentEvent.id);
+      const data = {
+        event: this.currentEvent,
+        circles: this.circles,
+        eventOrders: orderRecord
+      };
+      const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.currentEvent.name}.json`; a.click();
     },
     async importData(e: any) {
@@ -697,11 +761,30 @@ document.addEventListener('alpine:init', () => {
       reader.onload = async () => {
         const data = JSON.parse(reader.result as string);
         const newId = await db.events.add({ name: data.event.name + ' (Import)', date: data.event.date || new Date().toLocaleDateString() });
-        for (const c of data.circles) { delete c.id; c.eventId = newId; await db.circles.add(c); }
+        
+        const newUuidsMap = new Map<string, string>();
+        for (const c of data.circles) {
+          const oldUuid = c.uuid || c.id; 
+          c.uuid = crypto.randomUUID();
+          c.eventId = newId;
+          delete c.id;
+          newUuidsMap.set(oldUuid, c.uuid);
+          await db.circles.add(c); 
+        }
+
+        if (data.eventOrders && data.eventOrders.circleUuids) {
+          const newOrder = data.eventOrders.circleUuids.map((u: string) => newUuidsMap.get(u)).filter(Boolean) as string[];
+          await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
+        } else {
+          const newOrder = data.circles.map((c: any) => c.uuid);
+          await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
+        }
+
         await this.init();
       };
       reader.readAsText(file);
     },
   }));
 });
+
 Alpine.start();
