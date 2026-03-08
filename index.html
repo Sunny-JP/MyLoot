@@ -16,7 +16,6 @@
         dataLayer.push(arguments);
       }
       gtag("js", new Date());
-
       gtag("config", "G-0P3SKTXEWX");
     </script>
     <style>
@@ -37,7 +36,7 @@
       </header>
       <nav class="menu-content">
         <template x-for="event in events" :key="event.id">
-          <div class="event-card-wrapper" @contextmenu.prevent="activeContextId = (activeContextId === event.id ? null : event.id)" @touchstart="handleLongPressStart(event.id)" @touchend="handleLongPressEnd()">
+          <div class="event-card-wrapper" @contextmenu.prevent="activeContextId = (activeContextId === event.id ? null : event.id)">
             <div class="event-card" :class="{ 'active': currentEvent && currentEvent.id === event.id }" @click="selectEvent(event)">
               <span class="event-name" x-text="event.name"></span>
               <span class="event-date" x-show="event.date" x-text="event.date"></span>
@@ -86,13 +85,13 @@
                 <span class="group-label">Circles</span>
                 <div class="btn-group">
                   <button @click="openAddForm()" class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span></button>
-                  <button @click="toggleDeleteMode()" class="btn-tool" :title="t('select')"><span class="material-icons-round">checklist</span></button>
+                  <button @click="toggleDeleteMode()" class="btn-tool" :class="{'active': isDeleteMode}" :title="t('edit')"><span class="material-icons-round">edit</span></button>
                   <button @click="toggleColumns()" class="btn-tool" :title="t('listGrid')"><span class="material-icons-round" x-text="columns === 1 ? 'grid_view' : 'view_list'"></span></button>
                 </div>
               </div>
 
               <div class="btn-group-container" x-show="isDeleteMode" x-cloak>
-                <span class="group-label">Select</span>
+                <span class="group-label">Edit Mode</span>
                 <div class="btn-group">
                   <button @click="selectAll()" class="btn-tool" :title="t('selectAll')"><span class="material-icons-round">done_all</span></button>
                   <button @click="deselectAll()" class="btn-tool" :title="t('deselectAll')"><span class="material-icons-round">remove_done</span></button>
@@ -109,21 +108,28 @@
                 </div>
               </div>
             </div>
+
             <button @click="isToolbarOpen = !isToolbarOpen" class="toolbar-tab">
               <span class="material-icons-round" x-text="isToolbarOpen ? 'expand_less' : 'expand_more'"></span>
             </button>
           </div>
 
-          <div class="circles-grid" :class="{ 'grid-2col': columns === 2 }" id="sortable-grid">
-            <template x-for="circle in circles" :key="circle.uuid">
-              <div class="circle-wrapper" :data-uuid="circle.uuid" @contextmenu.prevent="if(!isDeleteMode) activeCircleContextId = (activeCircleContextId === circle.uuid ? null : circle.uuid)" @touchstart="handleCircleLongPressStart(circle.uuid)" @touchend="handleCircleLongPressEnd()" @touchcancel="handleCircleLongPressEnd()" @touchmove="handleCircleLongPressEnd()">
-                <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingUuid === circle.uuid }" @click="openCircleDetail(circle)">
-                  <div class="top-right-actions" x-show="!isDeleteMode" @click.stop @touchstart.stop>
+          <div class="circles-grid" :class="{ 'grid-2col': columns === 2 }">
+            <template x-for="(circle, index) in circles" :key="circle.uuid">
+              <div class="circle-wrapper" :data-uuid="circle.uuid">
+                <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingUuid === circle.uuid }" @click="isDeleteMode ? openEditForm(circle) : openCircleDetail(circle)">
+                  <div class="top-right-actions" @click.stop>
                     <span class="badge" x-show="circle.space" x-text="circle.space" style="font-size: 11px; padding: 2px 6px; min-height: 20px"></span>
                   </div>
 
-                  <div x-show="isDeleteMode" class="selector-box" x-transition.opacity @click.stop>
-                    <input type="checkbox" :value="circle.uuid" x-model="selectedUuids" />
+                  <div x-show="isDeleteMode" class="edit-controls" x-transition.opacity @click.stop>
+                    <div class="selector-box" style="padding: 0">
+                      <input type="checkbox" :value="circle.uuid" x-model="selectedUuids" />
+                    </div>
+                    <div class="move-actions">
+                      <button class="icon-btn move-btn" @click="moveCircleUp(index)" :disabled="index === 0"><span class="material-icons-round">keyboard_arrow_up</span></button>
+                      <button class="icon-btn move-btn" @click="moveCircleDown(index)" :disabled="index === circles.length - 1"><span class="material-icons-round">keyboard_arrow_down</span></button>
+                    </div>
                   </div>
 
                   <div class="thumb" @click.stop="openImagePreview(circle)">
@@ -145,11 +151,6 @@
                     </div>
                   </div>
                 </article>
-
-                <div class="context-menu" x-show="activeCircleContextId === circle.uuid" @click.away="activeCircleContextId = null" x-transition.opacity>
-                  <button @click="openEditForm(circle); activeCircleContextId = null;" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
-                  <button @click="deleteCircle(circle.uuid)" class="context-btn del" :title="t('delete')"><span class="material-icons-round">delete</span></button>
-                </div>
               </div>
             </template>
           </div>
@@ -387,6 +388,7 @@
     </div>
 
     <div class="floating-modal image-modal" x-show="previewImages.length > 0" x-transition.opacity x-cloak @click="previewImages = []">
+      <button class="icon-btn light modal-close-btn" @click.stop="previewImages = []"><span class="material-icons-round">close</span></button>
       <button class="slider-btn prev" x-show="previewImages.length > 1" @click.stop="prevPreview()"><span class="material-icons-round">chevron_left</span></button>
       <div class="preview-window" @click.stop><img :src="previewImages[previewIndex]" :style="imgStyles" @load="updateImgStyle" /></div>
       <button class="slider-btn next" x-show="previewImages.length > 1" @click.stop="nextPreview()"><span class="material-icons-round">chevron_right</span></button>

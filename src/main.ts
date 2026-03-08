@@ -13,7 +13,6 @@ import { registerSW } from 'virtual:pwa-register';
 import { db, processImage } from './db';
 import type { Circle, Item, EventFolder } from './db';
 import { translations, languageList, type Language } from './i18n';
-import Sortable from 'sortablejs';
 
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
@@ -46,13 +45,10 @@ document.addEventListener('alpine:init', () => {
     activeContextId: null as number | null,
     longPressTimer: undefined as number | undefined,
 
-    activeCircleContextId: null as string | null,
-    circleLongPressTimer: undefined as number | undefined,
     isCircleDetailOpen: false,
     selectedCircle: null as Circle | null,
 
     eventSortDesc: true,
-    sortableInstance: null as any,
     
     pdfWidth: parseInt(localStorage.getItem('pdfWidth') || '40'),
     pdfHeight: parseInt(localStorage.getItem('pdfHeight') || '250'),
@@ -67,34 +63,41 @@ document.addEventListener('alpine:init', () => {
     pinchCenterX: 0,
     pinchCenterY: 0,
 
-    handleCircleLongPressStart(uuid: string) {
-      if (this.isDeleteMode) return;
-      this.circleLongPressTimer = window.setTimeout(() => { this.activeCircleContextId = uuid; }, 600);
+    handleLongPressStart(id: number) {
+      this.longPressTimer = window.setTimeout(() => { this.activeContextId = id; }, 600);
     },
-    handleCircleLongPressEnd() {
-      if (this.circleLongPressTimer) {
-        window.clearTimeout(this.circleLongPressTimer);
+    handleLongPressEnd() {
+      if (this.longPressTimer) {
+        window.clearTimeout(this.longPressTimer);
+      }
+    },
+
+    async moveCircleUp(index: number) {
+      if (index <= 0) return;
+      const newCircles = [...this.circles];
+      [newCircles[index - 1], newCircles[index]] = [newCircles[index], newCircles[index - 1]];
+      this.circles = newCircles;
+      if (this.currentEvent && this.currentEvent.id !== undefined) {
+        const newOrderUuids = this.circles.map(c => c.uuid);
+        await db.eventOrders.put({ eventId: this.currentEvent.id, circleUuids: newOrderUuids });
+      }
+    },
+
+    async moveCircleDown(index: number) {
+      if (index >= this.circles.length - 1) return;
+      const newCircles = [...this.circles];
+      [newCircles[index + 1], newCircles[index]] = [newCircles[index], newCircles[index + 1]];
+      this.circles = newCircles;
+      if (this.currentEvent && this.currentEvent.id !== undefined) {
+        const newOrderUuids = this.circles.map(c => c.uuid);
+        await db.eventOrders.put({ eventId: this.currentEvent.id, circleUuids: newOrderUuids });
       }
     },
 
     openCircleDetail(circle: Circle) {
-      if (this.isDeleteMode || this.activeCircleContextId === circle.uuid) return;
+      if (this.isDeleteMode) return;
       this.selectedCircle = circle;
       this.isCircleDetailOpen = true;
-    },
-
-    async deleteCircle(uuid: string) {
-      if (!confirm(`${this.t('deleteOneCircleConfirm')}`)) return;
-      await db.circles.delete(uuid);
-      
-      const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
-      if (orderRecord) {
-        orderRecord.circleUuids = orderRecord.circleUuids.filter(u => u !== uuid);
-        await db.eventOrders.put(orderRecord);
-      }
-      
-      this.activeCircleContextId = null;
-      await this.refreshCircles();
     },
 
     handleTouchStart(e: TouchEvent) {
@@ -466,55 +469,6 @@ document.addEventListener('alpine:init', () => {
       this.activeContextId = null;
     },
 
-    // Sortableの初期化とDOMリセット処理による確実な同期
-    initSortable() {
-      if (this.sortableInstance) {
-        (this.sortableInstance as any).destroy();
-      }
-      const el = document.getElementById('sortable-grid');
-      if (!el) return;
-
-      let nextSibling: Node | null = null;
-
-      this.sortableInstance = Sortable.create(el, {
-        draggable: '.circle-wrapper', 
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        delay: 200,                // スマホのスクロールと誤爆しないよう長押しで発動
-        delayOnTouchOnly: true,
-        fallbackTolerance: 3,      // PCでのクリック(詳細を開く)をドラッグと誤認させない
-        onStart: (evt: any) => {
-          // ドラッグ開始時、元々自分の「次」にあった要素を記憶しておく
-          nextSibling = evt.item.nextSibling;
-        },
-        onEnd: async (evt: any) => {
-          if (evt.oldDraggableIndex === evt.newDraggableIndex) return;
-
-          // 1. Sortableが勝手に移動させたDOM要素を、一旦強引に元の位置に戻す
-          // （Alpine.js の管理する仮想DOMと現実のDOMのズレによるバグを防ぐため）
-          evt.from.removeChild(evt.item);
-          if (nextSibling) {
-            evt.from.insertBefore(evt.item, nextSibling);
-          } else {
-            evt.from.appendChild(evt.item);
-          }
-
-          // 2. その後、Alpine.jsの配列側を入れ替える
-          // これによりAlpine自身が正しい手順で再描画を行い、要素が暴れなくなる
-          const newCircles = [...this.circles];
-          const movedCircle = newCircles.splice(evt.oldDraggableIndex, 1)[0];
-          newCircles.splice(evt.newDraggableIndex, 0, movedCircle);
-          this.circles = newCircles;
-
-          // 3. DBに新しい順番を保存
-          if (this.currentEvent && this.currentEvent.id !== undefined) {
-            const newOrderUuids = this.circles.map(c => c.uuid);
-            await db.eventOrders.put({ eventId: this.currentEvent.id, circleUuids: newOrderUuids });
-          }
-        }
-      });
-    },
-
     async refreshCircles() {
       if (this.currentEvent && this.currentEvent.id !== undefined) {
         let list = await db.circles.where('eventId').equals(this.currentEvent.id).toArray();
@@ -531,11 +485,6 @@ document.addEventListener('alpine:init', () => {
         }
         
         this.circles = list;
-        
-        // 描画が完了したタイミングでSortableを初期化
-        setTimeout(() => {
-          this.initSortable();
-        }, 0);
       }
     },
 
@@ -582,7 +531,6 @@ document.addEventListener('alpine:init', () => {
     },
 
     async openEditForm(circle: Circle) {
-      if (this.isDeleteMode) return;
       this.editingUuid = circle.uuid;
       this.newName = circle.name;
       this.newSpace = circle.space;

@@ -9,7 +9,7 @@
   --dng: #ff3b30;
   --suc: #34c759;
   --header-bg: #020166;
-  --header-txt: #d8dcff;
+  --header-txt: #dfe2ff;
   --header-h: 48px;
   --sel-bg: rgba(186, 194, 255, 0.35);
   --badge-sel-bg: rgba(255, 255, 255, 0.5);
@@ -18,14 +18,14 @@
 }
 
 body.dark {
-  --p: #d8dcff;
+  --p: #dfe2ff;
   --p-contrast: #020166;
   --bg: #000000;
   --card: #1c1c1e;
   --txt: #ffffff;
   --brd: #454545;
   --header-bg: #020166;
-  --header-txt: #d8dcff;
+  --header-txt: #dfe2ff;
   --sel-bg: rgba(216, 220, 255, 0.25);
   --badge-sel-bg: rgba(0, 0, 0, 0.3);
   --price-sel-bg: rgba(0, 0, 0, 0.3);
@@ -152,8 +152,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .circle-card.checked { opacity: 0.5; filter: grayscale(1); }
 .circle-card.editing { border-color: var(--p); box-shadow: 0 0 0 1px var(--p); }
 
-.top-right-actions { position: absolute; top: 6px; right: 6px; display: flex; align-items: center; gap: 4px; z-index: 2; }
-.sortable-ghost { opacity: 0.4; }
+.top-right-actions { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; gap: 4px; z-index: 2; }
+.grid-2col .top-right-actions { top: 6px; right: 6px; }
+
+.edit-controls { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding-top: 8px; align-self: center; }
+.move-actions { display: flex; gap: 4px; }
+.move-btn { padding: 2px 6px; color: var(--txt); background: var(--bg); border: 1px solid var(--brd); border-radius: 6px; }
+.move-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+.move-btn .material-icons-round { font-size: 18px; }
 
 .selector-box { display: flex; align-items: center; justify-content: center; padding: 0 4px; align-self: stretch; }
 .selector-box input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: 22px; height: 22px; border: 2px solid var(--mut); border-radius: 4px; background-color: var(--card); cursor: pointer; position: relative; margin: 0; }
@@ -168,7 +174,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .grid-2col .thumb { width: 44px; height: 62px; }
 
 .title-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; padding-right: 60px; }
-.title-row h3 { margin: 0; font-size: 16px; word-break: break-all; line-height: 1.2; flex: 1; }
+.title-row h3 { margin: 0; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; flex: 1; }
 
 .meta { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex-wrap: wrap; }
 .badge { background: var(--p); color: var(--p-contrast); font-size: 13px; font-weight: 600; padding: 4px 6px; min-height: 24px; border-radius: 4px; letter-spacing: 0.7px; border: 1px solid var(--p); display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1.2; }
