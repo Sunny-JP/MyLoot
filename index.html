@@ -36,10 +36,15 @@
       </header>
       <nav class="menu-content">
         <template x-for="event in events" :key="event.id">
-          <div class="event-card-wrapper" @contextmenu.prevent="activeContextId = (activeContextId === event.id ? null : event.id)">
+          <div class="event-card-wrapper">
             <div class="event-card" :class="{ 'active': currentEvent && currentEvent.id === event.id }" @click="selectEvent(event)">
-              <span class="event-name" x-text="event.name"></span>
-              <span class="event-date" x-show="event.date" x-text="event.date"></span>
+              <div class="event-card-content">
+                <span class="event-name" x-text="event.name"></span>
+                <span class="event-date" x-show="event.date" x-text="event.date"></span>
+              </div>
+              <button class="icon-btn event-menu-btn" @click.stop="activeContextId = (activeContextId === event.id ? null : event.id)">
+                <span class="material-icons-round">more_vert</span>
+              </button>
             </div>
             <div class="context-menu" x-show="activeContextId === event.id" @click.away="activeContextId = null" x-transition.opacity>
               <button @click="openEventEditModal(event)" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
@@ -48,12 +53,15 @@
             </div>
           </div>
         </template>
-        <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px"><span class="material-icons-round">add</span> <span x-text="t('newEvent')"></span></button>
+        <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px; gap: 4px">
+          <span class="material-icons-round">add</span>
+          <span x-text="t('newEvent')"></span>
+        </button>
       </nav>
       <footer class="side-footer">
         <div style="display: flex; gap: 4px; margin-bottom: 8px">
           <button class="btn-pill" style="flex: 1" @click="exportData()" x-text="t('export')"></button>
-          <label class="btn-pill" style="flex: 1; text-align: center"><span x-text="t('import')"></span><input type="file" @change="importData" hidden /></label>
+          <button class="btn-pill" style="flex: 1" @click="openImportModal()" x-text="t('import')"></button>
         </div>
         <div style="display: flex; gap: 4px; align-items: stretch; margin-bottom: 8px">
           <button @click="toggleDarkMode()" class="btn-pill"><span class="material-icons-round" x-text="darkMode ? 'dark_mode' : 'light_mode'"></span></button>
@@ -63,7 +71,10 @@
             </template>
           </select>
         </div>
-        <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%"><span class="material-icons-round" style="font-size: 18px; margin-right: 4px">info</span>About</button>
+        <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%; gap: 4px">
+          <span class="material-icons-round" style="font-size: 18px">info</span>
+          <span>About</span>
+        </button>
       </footer>
     </aside>
 
@@ -204,7 +215,7 @@
             </div>
             <div class="form-footer">
               <button @click="saveCircle()" class="btn-pill primary" style="flex: 1" x-text="editingUuid ? t('update') : t('addToList')"></button>
-              <button @click="isFormOpen = false; editingUuid = null" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
+              <button @click="closeForm()" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
             </div>
           </div>
         </section>
@@ -315,7 +326,6 @@
               </ul>
             </section>
           </div>
-
           <div x-show="aboutTab === 'terms'" class="tab-pane">
             <section><p x-text="t('termsIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
             <section>
@@ -347,7 +357,6 @@
               </ul>
             </section>
           </div>
-
           <div x-show="aboutTab === 'policy'" class="tab-pane">
             <section><p x-text="t('policyIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
             <section>
@@ -364,7 +373,6 @@
               </ul>
             </section>
           </div>
-
           <div x-show="aboutTab === 'dev'" class="tab-pane">
             <section>
               <h4 x-text="t('devTeam')"></h4>
@@ -393,9 +401,7 @@
       <div class="preview-window" @click.stop><img :src="previewImages[previewIndex]" :style="imgStyles" @load="updateImgStyle" /></div>
       <button class="slider-btn next" x-show="previewImages.length > 1" @click.stop="nextPreview()"><span class="material-icons-round">chevron_right</span></button>
       <div class="slider-dots" x-show="previewImages.length > 1" @click.stop>
-        <template x-for="(img, idx) in previewImages" :key="idx">
-          <div class="dot" :class="{'active': idx === previewIndex}"></div>
-        </template>
+        <template x-for="(img, idx) in previewImages" :key="idx"><div class="dot" :class="{'active': idx === previewIndex}"></div></template>
       </div>
     </div>
 
@@ -413,6 +419,50 @@
         <div class="form-footer">
           <button @click="saveEvent()" class="btn-pill primary" style="flex: 1" x-text="editingEventId ? t('update') : t('add')"></button>
           <button @click="isEventModalOpen = false" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="floating-modal" x-show="confirmModal.isOpen" x-transition.opacity x-cloak style="z-index: 300">
+      <div class="form-card event-form">
+        <p style="margin-top: 0; margin-bottom: 20px; font-size: 15px; line-height: 1.5; font-weight: 600" x-text="confirmModal.message"></p>
+        <div class="form-footer">
+          <button @click="if(confirmModal.onConfirm) confirmModal.onConfirm()" class="btn-pill primary" style="flex: 1" x-text="t('execute')"></button>
+          <button @click="closeConfirm()" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="floating-modal" x-show="importModal.isOpen" x-transition.opacity x-cloak style="z-index: 300">
+      <div class="form-card event-form">
+        <header class="modal-header"><h3 x-text="t('importDataTitle')"></h3></header>
+
+        <div style="margin-bottom: 20px">
+          <span class="group-label" x-text="t('selectFile')"></span>
+          <label class="btn-pill" style="margin-top: 6px; width: 100%; box-sizing: border-box; cursor: pointer; gap: 4px">
+            <span class="material-icons-round" style="font-size: 18px">upload_file</span>
+            <span x-text="importModal.fileName || t('selectFile')" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap"></span>
+            <input type="file" @change="handleImportFileSelect" accept=".json" hidden />
+          </label>
+        </div>
+
+        <div style="margin-bottom: 16px">
+          <span class="group-label" x-text="t('importTarget')"></span>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+              <input type="radio" value="new" x-model="importModal.mode" />
+              <span x-text="t('importNewEvent')" style="font-weight: 600"></span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+              <input type="radio" value="append" x-model="importModal.mode" :disabled="!currentEvent" />
+              <span x-text="t('importExistingEvent')" :style="!currentEvent ? 'color: var(--mut)' : 'font-weight: 600;'"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button @click="executeImport()" class="btn-pill primary" style="flex: 1" :disabled="!importModal.file" x-text="t('execute')"></button>
+          <button @click="importModal.isOpen = false" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
         </div>
       </div>
     </div>

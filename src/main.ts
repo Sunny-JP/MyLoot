@@ -43,7 +43,6 @@ document.addEventListener('alpine:init', () => {
     editingUuid: null as string | null,
     
     activeContextId: null as number | null,
-    longPressTimer: undefined as number | undefined,
 
     isCircleDetailOpen: false,
     selectedCircle: null as Circle | null,
@@ -63,13 +62,35 @@ document.addEventListener('alpine:init', () => {
     pinchCenterX: 0,
     pinchCenterY: 0,
 
-    handleLongPressStart(id: number) {
-      this.longPressTimer = window.setTimeout(() => { this.activeContextId = id; }, 600);
+    confirmModal: {
+      isOpen: false,
+      message: '',
+      onConfirm: null as (() => Promise<void> | void) | null
     },
-    handleLongPressEnd() {
-      if (this.longPressTimer) {
-        window.clearTimeout(this.longPressTimer);
-      }
+
+    importModal: {
+      isOpen: false,
+      file: null as File | null,
+      fileName: '',
+      mode: 'new' as 'new' | 'append'
+    },
+
+    showConfirm(message: string, callback: () => Promise<void> | void) {
+      this.confirmModal.message = message;
+      this.confirmModal.onConfirm = callback;
+      this.confirmModal.isOpen = true;
+    },
+    
+    closeConfirm() {
+      this.confirmModal.isOpen = false;
+      this.confirmModal.onConfirm = null;
+    },
+
+    closeForm() {
+      this.isFormOpen = false;
+      setTimeout(() => {
+        this.editingUuid = null;
+      }, 200);
     },
 
     async moveCircleUp(index: number) {
@@ -466,13 +487,15 @@ document.addEventListener('alpine:init', () => {
       this.activeContextId = null;
     },
 
-    async deleteEvent(id: number) {
-      if (!confirm(this.t('deleteEventConfirm'))) return;
-      await db.events.delete(id);
-      await db.circles.where('eventId').equals(id).delete();
-      await db.eventOrders.delete(id);
-      await this.init();
-      this.activeContextId = null;
+    deleteEvent(id: number) {
+      this.showConfirm(this.t('deleteEventConfirm'), async () => {
+        await db.events.delete(id);
+        await db.circles.where('eventId').equals(id).delete();
+        await db.eventOrders.delete(id);
+        await this.init();
+        this.activeContextId = null;
+        this.closeConfirm();
+      });
     },
 
     async refreshCircles() {
@@ -614,8 +637,7 @@ document.addEventListener('alpine:init', () => {
         await db.eventOrders.put({ eventId: this.currentEvent.id, circleUuids: uuids });
       }
       
-      this.isFormOpen = false;
-      this.editingUuid = null;
+      this.closeForm();
       await this.refreshCircles();
     },
 
@@ -643,20 +665,22 @@ document.addEventListener('alpine:init', () => {
     deselectAll() {
       this.selectedUuids = [];
     },
-    async deleteSelected() {
+    
+    deleteSelected() {
       if (this.selectedUuids.length === 0) return;
-      if (!confirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`)) return;
-      await db.circles.bulkDelete(this.selectedUuids);
-      
-      const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
-      if (orderRecord) {
-        orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
-        await db.eventOrders.put(orderRecord);
-      }
-      
-      this.selectedUuids = [];
-      this.isDeleteMode = false;
-      await this.refreshCircles();
+      this.showConfirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`, async () => {
+        await db.circles.bulkDelete(this.selectedUuids);
+        
+        const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
+        if (orderRecord) {
+          orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
+          await db.eventOrders.put(orderRecord);
+        }
+        
+        this.selectedUuids = [];
+        await this.refreshCircles();
+        this.closeConfirm();
+      });
     },
 
     checkAutoAddLink(index: number) {
@@ -680,12 +704,15 @@ document.addEventListener('alpine:init', () => {
       this.renderPdf(this.pdfUrl);
     },
 
-    async resetMapPdf() {
-      if (!this.currentEvent || !this.currentEvent.id || !confirm(this.t('deletePdfConfirm'))) return;
-      await db.events.update(this.currentEvent.id, { mapPdf: undefined });
-      this.currentEvent.mapPdf = undefined;
-      if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-      this.pdfUrl = null;
+    resetMapPdf() {
+      if (!this.currentEvent || !this.currentEvent.id) return;
+      this.showConfirm(this.t('deletePdfConfirm'), async () => {
+        await db.events.update(this.currentEvent!.id!, { mapPdf: undefined });
+        this.currentEvent!.mapPdf = undefined;
+        if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+        this.pdfUrl = null;
+        this.closeConfirm();
+      });
     },
 
     removeItemInForm(index: number) { this.newItems.splice(index, 1); },
@@ -708,36 +735,66 @@ document.addEventListener('alpine:init', () => {
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.currentEvent.name}.json`; a.click();
     },
-    async importData(e: any) {
+
+    openImportModal() {
+      this.importModal.file = null;
+      this.importModal.fileName = '';
+      this.importModal.mode = 'new';
+      this.importModal.isOpen = true;
+      this.isMenuOpen = false;
+    },
+
+    handleImportFileSelect(e: any) {
       const file = e.target.files[0];
+      if (file) {
+        this.importModal.file = file;
+        this.importModal.fileName = file.name;
+      }
+    },
+
+    executeImport() {
+      const file = this.importModal.file;
       if (!file) return;
+
       const reader = new FileReader();
       reader.onload = async () => {
         const data = JSON.parse(reader.result as string);
-        const newId = await db.events.add({ name: data.event.name + ' (Import)', date: data.event.date || new Date().toLocaleDateString() });
-        
+        let targetEventId = this.currentEvent?.id;
+
+        if (this.importModal.mode === 'new' || !targetEventId) {
+          targetEventId = await db.events.add({ name: data.event.name + ' (Import)', date: data.event.date || new Date().toLocaleDateString() });
+        }
+
         const newUuidsMap = new Map<string, string>();
         for (const c of data.circles) {
           const oldUuid = c.uuid || c.id; 
           c.uuid = crypto.randomUUID();
-          c.eventId = newId;
+          c.eventId = targetEventId;
           delete c.id;
           newUuidsMap.set(oldUuid, c.uuid);
           await db.circles.add(c); 
         }
 
+        const existingOrder = await db.eventOrders.get(targetEventId);
+        let baseUuids = existingOrder ? existingOrder.circleUuids : [];
+
         if (data.eventOrders && data.eventOrders.circleUuids) {
           const newOrder = data.eventOrders.circleUuids.map((u: string) => newUuidsMap.get(u)).filter(Boolean) as string[];
-          await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
+          baseUuids = [...baseUuids, ...newOrder];
         } else {
           const newOrder = data.circles.map((c: any) => c.uuid);
-          await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
+          baseUuids = [...baseUuids, ...newOrder];
         }
 
-        await this.init();
+        await db.eventOrders.put({ eventId: targetEventId, circleUuids: baseUuids });
+
+        this.importModal.isOpen = false;
+        await this.loadEvents();
+        const ev = await db.events.get(targetEventId);
+        if(ev) await this.selectEvent(ev);
       };
       reader.readAsText(file);
-    },
+    }
   }));
 });
 
