@@ -62,6 +62,12 @@ document.addEventListener('alpine:init', () => {
     pinchCenterX: 0,
     pinchCenterY: 0,
 
+    imgZoom: 1.0,
+    initialImgPinchDist: 0,
+    initialImgZoom: 1.0,
+    imgPinchCenterX: 0,
+    imgPinchCenterY: 0,
+
     confirmModal: {
       isOpen: false,
       message: '',
@@ -174,6 +180,116 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    togglePdfZoom(e: any) {
+      const wrapper = document.getElementById('pdf-scroll-wrapper');
+      if (!wrapper) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX) || (rect.left + rect.width / 2);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY) || (rect.top + rect.height / 2);
+
+      const xRect = clientX - rect.left;
+      const yRect = clientY - rect.top;
+
+      const xContent = wrapper.scrollLeft + xRect;
+      const yContent = wrapper.scrollTop + yRect;
+
+      let targetZoom = 1.0;
+      if (this.pdfZoom < 2.5) {
+        targetZoom = 3.0;
+      } else if (this.pdfZoom < 4.5) {
+        targetZoom = 5.0;
+      } else {
+        targetZoom = 1.0;
+      }
+
+      const scale = targetZoom / this.pdfZoom;
+      this.pdfZoom = targetZoom;
+
+      setTimeout(() => {
+        wrapper.scrollLeft = (xContent * scale) - xRect;
+        wrapper.scrollTop = (yContent * scale) - yRect;
+      }, 50);
+    },
+
+    handleImgTouchStart(e: TouchEvent) {
+      if (e.touches.length === 2) {
+        this.initialImgPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        this.initialImgZoom = this.imgZoom;
+
+        const wrapper = document.getElementById('img-scroll-wrapper');
+        if (wrapper) {
+          const rect = wrapper.getBoundingClientRect();
+          const clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          
+          this.imgPinchCenterX = wrapper.scrollLeft + (clientX - rect.left);
+          this.imgPinchCenterY = wrapper.scrollTop + (clientY - rect.top);
+        }
+      }
+    },
+    
+    handleImgTouchMove(e: TouchEvent) {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const wrapper = document.getElementById('img-scroll-wrapper');
+        if (!wrapper) return;
+
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const scaleRatio = currentDist / this.initialImgPinchDist;
+        const newZoom = Math.max(1.0, Math.min(this.initialImgZoom * scaleRatio, 10.0));
+
+        if (newZoom !== this.imgZoom) {
+          const zoomDelta = newZoom / this.imgZoom;
+          this.imgZoom = newZoom;
+
+          const newPinchCenterX = this.imgPinchCenterX * zoomDelta;
+          const newPinchCenterY = this.imgPinchCenterY * zoomDelta;
+
+          const rect = wrapper.getBoundingClientRect();
+          const clientX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const clientY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          
+          wrapper.scrollLeft = newPinchCenterX - (clientX - rect.left);
+          wrapper.scrollTop = newPinchCenterY - (clientY - rect.top);
+
+          this.imgPinchCenterX = newPinchCenterX;
+          this.imgPinchCenterY = newPinchCenterY;
+        }
+      }
+    },
+
+    toggleImgZoom(e: any) {
+      const wrapper = document.getElementById('img-scroll-wrapper');
+      if (!wrapper) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX) || (rect.left + rect.width / 2);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY) || (rect.top + rect.height / 2);
+
+      const xRect = clientX - rect.left;
+      const yRect = clientY - rect.top;
+
+      const xContent = wrapper.scrollLeft + xRect;
+      const yContent = wrapper.scrollTop + yRect;
+
+      const targetZoom = this.imgZoom > 1.0 ? 1.0 : 2.5;
+      const scale = targetZoom / this.imgZoom;
+
+      this.imgZoom = targetZoom;
+
+      setTimeout(() => {
+        wrapper.scrollLeft = (xContent * scale) - xRect;
+        wrapper.scrollTop = (yContent * scale) - yRect;
+      }, 50);
+    },
+
     get mapPaneStyle() {
       if (window.innerWidth >= 900) {
         const w = this.isPdfCollapsed ? '1px' : `${this.pdfWidth}vw`;
@@ -199,7 +315,18 @@ document.addEventListener('alpine:init', () => {
 
     previewImages: [] as string[],
     previewIndex: 0,
-    imgStyles: { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' } as any,
+    imgStyles: { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' },
+
+    get zoomedImgStyles() {
+      const zoom = this.imgZoom;
+      const styles = this.imgStyles as { width: string; height: string };
+      
+      if (styles.width === '100%') {
+        return { width: `${zoom * 100}%`, height: 'auto', maxWidth: 'none', maxHeight: 'none', display: 'block' };
+      } else {
+        return { height: `${zoom * 100}%`, width: 'auto', maxWidth: 'none', maxHeight: 'none', display: 'block' };
+      }
+    },
 
     newName: '',
     newSpace: '',
@@ -487,15 +614,13 @@ document.addEventListener('alpine:init', () => {
       this.activeContextId = null;
     },
 
-    deleteEvent(id: number) {
-      this.showConfirm(this.t('deleteEventConfirm'), async () => {
-        await db.events.delete(id);
-        await db.circles.where('eventId').equals(id).delete();
-        await db.eventOrders.delete(id);
-        await this.init();
-        this.activeContextId = null;
-        this.closeConfirm();
-      });
+    async deleteEvent(id: number) {
+      if (!confirm(this.t('deleteEventConfirm'))) return;
+      await db.events.delete(id);
+      await db.circles.where('eventId').equals(id).delete();
+      await db.eventOrders.delete(id);
+      await this.init();
+      this.activeContextId = null;
     },
 
     async refreshCircles() {
@@ -522,16 +647,19 @@ document.addEventListener('alpine:init', () => {
         ? circle.images 
         : (circle.image ? [circle.image] : []);
       this.previewIndex = 0;
+      this.imgZoom = 1.0;
       this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
     },
 
     nextPreview() {
       this.previewIndex = (this.previewIndex + 1) % this.previewImages.length;
+      this.imgZoom = 1.0;
       this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
     },
     
     prevPreview() {
       this.previewIndex = (this.previewIndex - 1 + this.previewImages.length) % this.previewImages.length;
+      this.imgZoom = 1.0;
       this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
     },
 
@@ -665,22 +793,19 @@ document.addEventListener('alpine:init', () => {
     deselectAll() {
       this.selectedUuids = [];
     },
-    
-    deleteSelected() {
+    async deleteSelected() {
       if (this.selectedUuids.length === 0) return;
-      this.showConfirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`, async () => {
-        await db.circles.bulkDelete(this.selectedUuids);
-        
-        const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
-        if (orderRecord) {
-          orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
-          await db.eventOrders.put(orderRecord);
-        }
-        
-        this.selectedUuids = [];
-        await this.refreshCircles();
-        this.closeConfirm();
-      });
+      if (!confirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`)) return;
+      await db.circles.bulkDelete(this.selectedUuids);
+      
+      const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
+      if (orderRecord) {
+        orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
+        await db.eventOrders.put(orderRecord);
+      }
+      
+      this.selectedUuids = [];
+      await this.refreshCircles();
     },
 
     checkAutoAddLink(index: number) {
@@ -704,15 +829,12 @@ document.addEventListener('alpine:init', () => {
       this.renderPdf(this.pdfUrl);
     },
 
-    resetMapPdf() {
-      if (!this.currentEvent || !this.currentEvent.id) return;
-      this.showConfirm(this.t('deletePdfConfirm'), async () => {
-        await db.events.update(this.currentEvent!.id!, { mapPdf: undefined });
-        this.currentEvent!.mapPdf = undefined;
-        if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-        this.pdfUrl = null;
-        this.closeConfirm();
-      });
+    async resetMapPdf() {
+      if (!this.currentEvent || !this.currentEvent.id || !confirm(this.t('deletePdfConfirm'))) return;
+      await db.events.update(this.currentEvent.id, { mapPdf: undefined });
+      this.currentEvent.mapPdf = undefined;
+      if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+      this.pdfUrl = null;
     },
 
     removeItemInForm(index: number) { this.newItems.splice(index, 1); },
@@ -735,66 +857,36 @@ document.addEventListener('alpine:init', () => {
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.currentEvent.name}.json`; a.click();
     },
-
-    openImportModal() {
-      this.importModal.file = null;
-      this.importModal.fileName = '';
-      this.importModal.mode = 'new';
-      this.importModal.isOpen = true;
-      this.isMenuOpen = false;
-    },
-
-    handleImportFileSelect(e: any) {
+    async importData(e: any) {
       const file = e.target.files[0];
-      if (file) {
-        this.importModal.file = file;
-        this.importModal.fileName = file.name;
-      }
-    },
-
-    executeImport() {
-      const file = this.importModal.file;
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = async () => {
         const data = JSON.parse(reader.result as string);
-        let targetEventId = this.currentEvent?.id;
-
-        if (this.importModal.mode === 'new' || !targetEventId) {
-          targetEventId = await db.events.add({ name: data.event.name + ' (Import)', date: data.event.date || new Date().toLocaleDateString() });
-        }
-
+        const newId = await db.events.add({ name: data.event.name + ' (Import)', date: data.event.date || new Date().toLocaleDateString() });
+        
         const newUuidsMap = new Map<string, string>();
         for (const c of data.circles) {
           const oldUuid = c.uuid || c.id; 
           c.uuid = crypto.randomUUID();
-          c.eventId = targetEventId;
+          c.eventId = newId;
           delete c.id;
           newUuidsMap.set(oldUuid, c.uuid);
           await db.circles.add(c); 
         }
 
-        const existingOrder = await db.eventOrders.get(targetEventId);
-        let baseUuids = existingOrder ? existingOrder.circleUuids : [];
-
         if (data.eventOrders && data.eventOrders.circleUuids) {
           const newOrder = data.eventOrders.circleUuids.map((u: string) => newUuidsMap.get(u)).filter(Boolean) as string[];
-          baseUuids = [...baseUuids, ...newOrder];
+          await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
         } else {
           const newOrder = data.circles.map((c: any) => c.uuid);
-          baseUuids = [...baseUuids, ...newOrder];
+          await db.eventOrders.put({ eventId: newId, circleUuids: newOrder });
         }
 
-        await db.eventOrders.put({ eventId: targetEventId, circleUuids: baseUuids });
-
-        this.importModal.isOpen = false;
-        await this.loadEvents();
-        const ev = await db.events.get(targetEventId);
-        if(ev) await this.selectEvent(ev);
+        await this.init();
       };
       reader.readAsText(file);
-    }
+    },
   }));
 });
 

@@ -36,15 +36,10 @@
       </header>
       <nav class="menu-content">
         <template x-for="event in events" :key="event.id">
-          <div class="event-card-wrapper">
+          <div class="event-card-wrapper" @contextmenu.prevent="activeContextId = (activeContextId === event.id ? null : event.id)">
             <div class="event-card" :class="{ 'active': currentEvent && currentEvent.id === event.id }" @click="selectEvent(event)">
-              <div class="event-card-content">
-                <span class="event-name" x-text="event.name"></span>
-                <span class="event-date" x-show="event.date" x-text="event.date"></span>
-              </div>
-              <button class="icon-btn event-menu-btn" @click.stop="activeContextId = (activeContextId === event.id ? null : event.id)">
-                <span class="material-icons-round">more_vert</span>
-              </button>
+              <span class="event-name" x-text="event.name"></span>
+              <span class="event-date" x-show="event.date" x-text="event.date"></span>
             </div>
             <div class="context-menu" x-show="activeContextId === event.id" @click.away="activeContextId = null" x-transition.opacity>
               <button @click="openEventEditModal(event)" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
@@ -53,15 +48,12 @@
             </div>
           </div>
         </template>
-        <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px; gap: 4px">
-          <span class="material-icons-round">add</span>
-          <span x-text="t('newEvent')"></span>
-        </button>
+        <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px"><span class="material-icons-round">add</span> <span x-text="t('newEvent')"></span></button>
       </nav>
       <footer class="side-footer">
         <div style="display: flex; gap: 4px; margin-bottom: 8px">
           <button class="btn-pill" style="flex: 1" @click="exportData()" x-text="t('export')"></button>
-          <button class="btn-pill" style="flex: 1" @click="openImportModal()" x-text="t('import')"></button>
+          <label class="btn-pill" style="flex: 1; text-align: center"><span x-text="t('import')"></span><input type="file" @change="importData" hidden /></label>
         </div>
         <div style="display: flex; gap: 4px; align-items: stretch; margin-bottom: 8px">
           <button @click="toggleDarkMode()" class="btn-pill"><span class="material-icons-round" x-text="darkMode ? 'dark_mode' : 'light_mode'"></span></button>
@@ -71,10 +63,7 @@
             </template>
           </select>
         </div>
-        <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%; gap: 4px">
-          <span class="material-icons-round" style="font-size: 18px">info</span>
-          <span>About</span>
-        </button>
+        <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%"><span class="material-icons-round" style="font-size: 18px; margin-right: 4px">info</span>About</button>
       </footer>
     </aside>
 
@@ -130,20 +119,20 @@
               <div class="circle-wrapper" :data-uuid="circle.uuid">
                 <article class="circle-card" :class="{ 'checked': circle.isChecked, 'editing': editingUuid === circle.uuid }" @click="isDeleteMode ? openEditForm(circle) : openCircleDetail(circle)">
                   <div class="top-right-actions" @click.stop>
-                    <span class="badge" x-show="circle.space" x-text="circle.space" style="font-size: 11px; padding: 2px 6px; min-height: 20px"></span>
+                    <span class="badge" x-show="!isDeleteMode && circle.space" x-text="circle.space" style="font-size: 11px; padding: 2px 6px; min-height: 20px"></span>
+                    <div x-show="isDeleteMode" class="selector-box" x-transition.opacity>
+                      <input type="checkbox" :value="circle.uuid" x-model="selectedUuids" />
+                    </div>
                   </div>
 
                   <div x-show="isDeleteMode" class="edit-controls" x-transition.opacity @click.stop>
-                    <div class="selector-box" style="padding: 0">
-                      <input type="checkbox" :value="circle.uuid" x-model="selectedUuids" />
-                    </div>
                     <div class="move-actions">
                       <button class="icon-btn move-btn" @click="moveCircleUp(index)" :disabled="index === 0"><span class="material-icons-round">keyboard_arrow_up</span></button>
                       <button class="icon-btn move-btn" @click="moveCircleDown(index)" :disabled="index === circles.length - 1"><span class="material-icons-round">keyboard_arrow_down</span></button>
                     </div>
                   </div>
 
-                  <div class="thumb" @click.stop="openImagePreview(circle)">
+                  <div class="thumb" @click.stop="isDeleteMode ? openEditForm(circle) : openImagePreview(circle)">
                     <img :src="(circle.images && circle.images.length > 0) ? circle.images[0] : (circle.image || '/noimage.png')" />
                   </div>
                   <div class="info">
@@ -229,7 +218,7 @@
 
           <div class="map-body">
             <template x-if="pdfUrl">
-              <div class="pdf-scroll-wrapper" id="pdf-scroll-wrapper" @touchstart="handleTouchStart" @touchmove="handleTouchMove">
+              <div class="pdf-scroll-wrapper" id="pdf-scroll-wrapper" @touchstart="handleTouchStart" @touchmove="handleTouchMove" @dblclick="togglePdfZoom($event)">
                 <div id="pdf-canvas-container" :style="`width: ${pdfZoom * 100}%; min-width: 100%;`"></div>
               </div>
             </template>
@@ -326,6 +315,7 @@
               </ul>
             </section>
           </div>
+
           <div x-show="aboutTab === 'terms'" class="tab-pane">
             <section><p x-text="t('termsIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
             <section>
@@ -357,6 +347,7 @@
               </ul>
             </section>
           </div>
+
           <div x-show="aboutTab === 'policy'" class="tab-pane">
             <section><p x-text="t('policyIntro')" style="font-size: 13px; margin-bottom: 12px"></p></section>
             <section>
@@ -373,6 +364,7 @@
               </ul>
             </section>
           </div>
+
           <div x-show="aboutTab === 'dev'" class="tab-pane">
             <section>
               <h4 x-text="t('devTeam')"></h4>
@@ -398,10 +390,16 @@
     <div class="floating-modal image-modal" x-show="previewImages.length > 0" x-transition.opacity x-cloak @click="previewImages = []">
       <button class="icon-btn light modal-close-btn" @click.stop="previewImages = []"><span class="material-icons-round">close</span></button>
       <button class="slider-btn prev" x-show="previewImages.length > 1" @click.stop="prevPreview()"><span class="material-icons-round">chevron_left</span></button>
-      <div class="preview-window" @click.stop><img :src="previewImages[previewIndex]" :style="imgStyles" @load="updateImgStyle" /></div>
+
+      <div class="preview-window" id="img-scroll-wrapper" @click.stop @dblclick.stop="toggleImgZoom($event)" @touchstart="handleImgTouchStart" @touchmove="handleImgTouchMove">
+        <img :src="previewImages[previewIndex]" :style="zoomedImgStyles" @load="updateImgStyle" />
+      </div>
+
       <button class="slider-btn next" x-show="previewImages.length > 1" @click.stop="nextPreview()"><span class="material-icons-round">chevron_right</span></button>
       <div class="slider-dots" x-show="previewImages.length > 1" @click.stop>
-        <template x-for="(img, idx) in previewImages" :key="idx"><div class="dot" :class="{'active': idx === previewIndex}"></div></template>
+        <template x-for="(img, idx) in previewImages" :key="idx">
+          <div class="dot" :class="{'active': idx === previewIndex}"></div>
+        </template>
       </div>
     </div>
 
