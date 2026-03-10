@@ -24,7 +24,7 @@
       }
     </style>
   </head>
-  <body x-data="app" :class="{ 'dark': darkMode }" x-cloak x-effect="document.title = t('siteTitle');">
+  <body x-data="app" :class="(isDark ? 'dark ' : 'light ') + (themeColor !== 'blue' ? 'theme-' + themeColor : '')" x-cloak x-effect="document.title = t('siteTitle');">
     <div class="menu-overlay" x-show="isMenuOpen" @click="isMenuOpen = false" x-transition.opacity></div>
 
     <aside class="side-menu" :class="{ 'is-open': isMenuOpen }">
@@ -38,8 +38,13 @@
         <template x-for="event in events" :key="event.id">
           <div class="event-card-wrapper" @contextmenu.prevent="activeContextId = (activeContextId === event.id ? null : event.id)">
             <div class="event-card" :class="{ 'active': currentEvent && currentEvent.id === event.id }" @click="selectEvent(event)">
-              <span class="event-name" x-text="event.name"></span>
-              <span class="event-date" x-show="event.date" x-text="event.date"></span>
+              <div class="event-card-content">
+                <div class="event-name" x-text="event.name"></div>
+                <div class="event-date" x-show="event.date" x-text="event.date"></div>
+              </div>
+              <button class="icon-btn event-menu-btn" @click.stop="activeContextId = (activeContextId === event.id ? null : event.id)">
+                <span class="material-icons-round">more_vert</span>
+              </button>
             </div>
             <div class="context-menu" x-show="activeContextId === event.id" @click.away="activeContextId = null" x-transition.opacity>
               <button @click="openEventEditModal(event)" class="context-btn" :title="t('edit')"><span class="material-icons-round">edit</span></button>
@@ -50,26 +55,26 @@
         </template>
         <button @click="openEventCreateModal()" class="btn-pill" style="width: 100%; margin-top: 8px"><span class="material-icons-round">add</span> <span x-text="t('newEvent')"></span></button>
       </nav>
+
       <footer class="side-footer">
         <div style="display: flex; gap: 4px; margin-bottom: 8px">
           <button class="btn-pill" style="flex: 1" @click="exportData()" x-text="t('export')"></button>
           <label class="btn-pill" style="flex: 1; text-align: center"><span x-text="t('import')"></span><input type="file" @change="importData" hidden /></label>
         </div>
-        <div style="display: flex; gap: 4px; align-items: stretch; margin-bottom: 8px">
-          <button @click="toggleDarkMode()" class="btn-pill"><span class="material-icons-round" x-text="darkMode ? 'dark_mode' : 'light_mode'"></span></button>
-          <select class="input-flat" x-model="lang" @change="setLang($event.target.value)" style="flex: 1">
-            <template x-for="l in languageList" :key="l.code">
-              <option :value="l.code" x-text="l.label" :selected="l.code === lang"></option>
-            </template>
-          </select>
-        </div>
-        <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%"><span class="material-icons-round" style="font-size: 18px; margin-right: 4px">info</span>About</button>
+        <button @click="isSettingsOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%; margin-bottom: 8px; gap: 4px">
+          <span class="material-icons-round" style="font-size: 18px">settings</span>
+          <span x-text="t('settings')"></span>
+        </button>
+        <button @click="isAboutOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%; gap: 4px">
+          <span class="material-icons-round" style="font-size: 18px">info</span>
+          <span>About</span>
+        </button>
       </footer>
     </aside>
 
     <div class="app-shell">
       <header class="app-bar">
-        <button @click="isMenuOpen = true" class="icon-btn light"><span class="material-icons-round">menu</span></button>
+        <button @click="isMenuOpen = true" class="icon-btn header-menu-btn"><span class="material-icons-round">menu</span></button>
         <div class="title-group">
           <small x-text="t('siteTitle')"></small>
           <h1 x-text="currentEvent?.name"></h1>
@@ -84,7 +89,7 @@
               <div class="btn-group-container" x-show="!isDeleteMode">
                 <span class="group-label">Circles</span>
                 <div class="btn-group">
-                  <button @click="openAddForm()" class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span></button>
+                  <button @click="openAddForm()" class="btn-tool" :title="t('add')"><span class="material-icons-round">add</span></button>
                   <button @click="toggleDeleteMode()" class="btn-tool" :class="{'active': isDeleteMode}" :title="t('edit')"><span class="material-icons-round">edit</span></button>
                   <button @click="toggleColumns()" class="btn-tool" :title="t('listGrid')"><span class="material-icons-round" x-text="columns === 1 ? 'grid_view' : 'view_list'"></span></button>
                 </div>
@@ -103,7 +108,7 @@
               <div class="btn-group-container" x-show="!isDeleteMode">
                 <span class="group-label">Map PDF</span>
                 <div class="btn-group">
-                  <label class="btn-tool primary" :title="t('add')"><span class="material-icons-round">add</span><input type="file" @change="uploadMapPdf" accept="application/pdf" hidden /></label>
+                  <label class="btn-tool" :title="t('add')"><span class="material-icons-round">add</span><input type="file" @change="uploadMapPdf" accept="application/pdf" hidden /></label>
                   <button @click="resetMapPdf()" class="btn-tool danger" x-show="pdfUrl" :title="t('delete')"><span class="material-icons-round">delete</span></button>
                 </div>
               </div>
@@ -266,6 +271,51 @@
             </div>
           </div>
         </template>
+      </div>
+    </div>
+
+    <div class="floating-modal" x-show="isSettingsOpen" x-transition.opacity x-cloak style="z-index: 300" @click="isSettingsOpen = false">
+      <div class="form-card event-form settings-card" @click.stop>
+        <header class="modal-header"><h3 x-text="t('settings')"></h3></header>
+
+        <div style="margin-bottom: 16px">
+          <span class="group-label" x-text="t('appearance')"></span>
+          <div class="segmented-control" style="margin-top: 6px">
+            <button :class="{'active': appearance === 'light'}" @click="appearance = 'light'; localStorage.setItem('appearance', 'light')"><span class="material-icons-round">light_mode</span><span x-text="t('light')"></span></button>
+            <button :class="{'active': appearance === 'dark'}" @click="appearance = 'dark'; localStorage.setItem('appearance', 'dark')"><span class="material-icons-round">dark_mode</span><span x-text="t('dark')"></span></button>
+            <button :class="{'active': appearance === 'system'}" @click="appearance = 'system'; localStorage.setItem('appearance', 'system')"><span class="material-icons-round">settings_brightness</span><span x-text="t('system')"></span></button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px">
+          <span class="group-label" x-text="t('themeColor')"></span>
+          <div class="color-picker" style="margin-top: 10px">
+            <button class="color-btn" style="background-color: #020166" :class="{'active': themeColor === 'blue'}" @click="themeColor = 'blue'; localStorage.setItem('themeColor', 'blue')"></button>
+            <button class="color-btn" style="background-color: #0288d1" :class="{'active': themeColor === 'sky'}" @click="themeColor = 'sky'; localStorage.setItem('themeColor', 'sky')"></button>
+            <button class="color-btn" style="background-color: #00897b" :class="{'active': themeColor === 'mint'}" @click="themeColor = 'mint'; localStorage.setItem('themeColor', 'mint')"></button>
+            <button class="color-btn" style="background-color: #43a047" :class="{'active': themeColor === 'sage'}" @click="themeColor = 'sage'; localStorage.setItem('themeColor', 'sage')"></button>
+            <button class="color-btn" style="background-color: #f57c00" :class="{'active': themeColor === 'amber'}" @click="themeColor = 'amber'; localStorage.setItem('themeColor', 'amber')"></button>
+            <button class="color-btn" style="background-color: #f4511e" :class="{'active': themeColor === 'coral'}" @click="themeColor = 'coral'; localStorage.setItem('themeColor', 'coral')"></button>
+            <button class="color-btn" style="background-color: #d81b60" :class="{'active': themeColor === 'rose'}" @click="themeColor = 'rose'; localStorage.setItem('themeColor', 'rose')"></button>
+            <button class="color-btn" style="background-color: #8e24aa" :class="{'active': themeColor === 'lilac'}" @click="themeColor = 'lilac'; localStorage.setItem('themeColor', 'lilac')"></button>
+            <button class="color-btn" style="background-color: #424242" :class="{'active': themeColor === 'mono'}" @click="themeColor = 'mono'; localStorage.setItem('themeColor', 'mono')"></button>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 20px">
+          <span class="group-label" x-text="t('language')"></span>
+          <div class="segmented-control lang-control" style="margin-top: 6px">
+            <template x-for="l in languageList" :key="l.code">
+              <button :class="{'active': lang === l.code}" @click="setLang(l.code)">
+                <span x-text="l.label" style="font-size: 12px; white-space: nowrap"></span>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <button @click="isSettingsOpen = false" class="btn-pill" style="flex: 1" x-text="t('close')"></button>
+        </div>
       </div>
     </div>
 

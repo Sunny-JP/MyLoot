@@ -25,12 +25,17 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     lang: (localStorage.getItem('lang') || 'ja') as Language,
     languageList,
-    darkMode: localStorage.getItem('theme') === 'dark' || 
-            (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches),
-    
+    appearance: localStorage.getItem('appearance') || 'system',
+    themeColor: localStorage.getItem('themeColor') || 'blue',
+    systemIsDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+
+    get isDark() {
+      if (this.appearance === 'system') return this.systemIsDark;
+      return this.appearance === 'dark';
+    },
+
     t(key: keyof typeof translations['ja']) { return translations[this.lang][key] || key; },
     setLang(l: string) { this.lang = l as Language; localStorage.setItem('lang', l); },
-    toggleDarkMode() { this.darkMode = !this.darkMode; localStorage.setItem('theme', this.darkMode ? 'dark' : 'light'); },
 
     events: [] as EventFolder[],
     currentEvent: null as EventFolder | null,
@@ -38,6 +43,7 @@ document.addEventListener('alpine:init', () => {
     selectedUuids: [] as string[],
     isMenuOpen: false, 
     isFormOpen: false, 
+    isSettingsOpen: false,
     isDeleteMode: false,
     pdfUrl: null as string | null,
     editingUuid: null as string | null,
@@ -389,6 +395,10 @@ document.addEventListener('alpine:init', () => {
     },
 
     async init() {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        this.systemIsDark = e.matches;
+      });
+
       this.initResizer();
       await this.loadEvents();
       
