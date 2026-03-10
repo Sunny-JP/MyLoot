@@ -1,5 +1,4 @@
 :root {
-  /* デフォルトテーマ (Blue) */
   --p: #020166;
   --p-contrast: #ffffff;
   --bg: #f2f2f7;
@@ -9,11 +8,9 @@
   --brd: #cccccc;
   --dng: #ff3b30;
   --suc: #34c759;
-
   --header-bg: #020166;
   --header-title: #ffffff;
   --header-sub: #ebedff;
-  
   --header-h: 48px;
   --sel-bg: rgba(186, 194, 255, 0.35);
   --badge-sel-bg: rgba(255, 255, 255, 0.5);
@@ -28,173 +25,91 @@ body.dark {
   --card: #1c1c1e;
   --txt: #ffffff;
   --brd: #454545;
-  
   --header-bg: #1a237e;
   --header-title: #ffffff;
   --header-sub: #c5cae9;
-
   --sel-bg: rgba(121, 134, 203, 0.2);
   --badge-sel-bg: rgba(0, 0, 0, 0.3);
   --price-sel-bg: rgba(0, 0, 0, 0.3);
   color-scheme: dark;
 }
 
-/* --- テーマ2: Sky --- */
 body.theme-sky {
-  --p: #0288d1;
-  --p-contrast: #ffffff;
-  --header-bg: #0288d1;
-  --header-title: #ffffff;
-  --header-sub: #e1f5fe;
-  --sel-bg: rgba(2, 136, 209, 0.15);
-  --price-sel-bg: rgba(2, 136, 209, 0.25);
-}
+  --p: #0288d1; --p-contrast: #ffffff;
+  --header-bg: #0288d1; --header-title: #ffffff; --header-sub: #e1f5fe;
+  --sel-bg: rgba(2, 136, 209, 0.15); --price-sel-bg: rgba(2, 136, 209, 0.25); }
 body.theme-sky.dark {
-  --p: #29b6f6;
-  --p-contrast: #000000;
-  --header-bg: #01579b;
-  --header-title: #ffffff;
-  --header-sub: #b3e5fc;
-  --sel-bg: rgba(41, 182, 246, 0.2);
-}
+  --p: #29b6f6; --p-contrast: #000000;
+  --header-bg: #01579b; --header-title: #ffffff; --header-sub: #b3e5fc;
+  --sel-bg: rgba(41, 182, 246, 0.2); }
 
-/* --- テーマ3: Mint --- */
 body.theme-mint {
-  --p: #00897b;
-  --p-contrast: #ffffff;
-  --header-bg: #00897b;
-  --header-title: #ffffff;
-  --header-sub: #e0f2f1;
-  --sel-bg: rgba(0, 137, 123, 0.15);
-  --price-sel-bg: rgba(0, 137, 123, 0.25);
-}
+  --p: #00897b; --p-contrast: #ffffff;
+  --header-bg: #00897b; --header-title: #ffffff; --header-sub: #e0f2f1;
+  --sel-bg: rgba(0, 137, 123, 0.15); --price-sel-bg: rgba(0, 137, 123, 0.25); }
 body.theme-mint.dark {
-  --p: #26a69a;
-  --p-contrast: #000000;
-  --header-bg: #004d40;
-  --header-title: #ffffff;
-  --header-sub: #b2dfdb;
-  --sel-bg: rgba(38, 166, 154, 0.2);
-}
+  --p: #26a69a; --p-contrast: #000000;
+  --header-bg: #004d40; --header-title: #ffffff; --header-sub: #b2dfdb;
+  --sel-bg: rgba(38, 166, 154, 0.2); }
 
-/* --- テーマ4: Sage --- */
 body.theme-sage {
-  --p: #43a047;
-  --p-contrast: #ffffff;
-  --header-bg: #43a047;
-  --header-title: #ffffff;
-  --header-sub: #e8f5e9;
-  --sel-bg: rgba(67, 160, 71, 0.15);
-  --price-sel-bg: rgba(67, 160, 71, 0.25);
-}
+  --p: #43a047; --p-contrast: #ffffff; --header-bg: #43a047;
+  --header-title: #ffffff; --header-sub: #e8f5e9;
+  --sel-bg: rgba(67, 160, 71, 0.15); --price-sel-bg: rgba(67, 160, 71, 0.25); }
 body.theme-sage.dark {
-  --p: #66bb6a;
-  --p-contrast: #000000;
-  --header-bg: #1b5e20;
-  --header-title: #ffffff;
-  --header-sub: #c8e6c9;
-  --sel-bg: rgba(102, 187, 106, 0.2);
-}
+  --p: #66bb6a; --p-contrast: #000000;
+  --header-bg: #1b5e20; --header-title: #ffffff; --header-sub: #c8e6c9;
+  --sel-bg: rgba(102, 187, 106, 0.2); }
 
-/* --- テーマ5: Amber --- */
 body.theme-amber {
-  --p: #f57c00;
-  --p-contrast: #ffffff;
-  --header-bg: #f57c00;
-  --header-title: #ffffff;
-  --header-sub: #fff3e0;
-  --sel-bg: rgba(245, 124, 0, 0.15);
-  --price-sel-bg: rgba(245, 124, 0, 0.25);
-}
+  --p: #f57c00; --p-contrast: #ffffff;
+  --header-bg: #f57c00; --header-title: #ffffff; --header-sub: #fff3e0;
+  --sel-bg: rgba(245, 124, 0, 0.15); --price-sel-bg: rgba(245, 124, 0, 0.25); }
 body.theme-amber.dark {
-  --p: #ffb74d;
-  --p-contrast: #000000;
-  --header-bg: #b26a00;
-  --header-title: #ffffff;
-  --header-sub: #ffe0b2;
-  --sel-bg: rgba(255, 167, 38, 0.2);
-}
+  --p: #ffb74d; --p-contrast: #000000;
+  --header-bg: #b26a00; --header-title: #ffffff; --header-sub: #ffe0b2;
+  --sel-bg: rgba(255, 167, 38, 0.2); }
 
-/* --- テーマ6: Coral --- */
 body.theme-coral {
-  --p: #f4511e;
-  --p-contrast: #ffffff;
-  --header-bg: #f4511e;
-  --header-title: #ffffff;
-  --header-sub: #fbe9e7;
-  --sel-bg: rgba(244, 81, 30, 0.15);
-  --price-sel-bg: rgba(244, 81, 30, 0.25);
-}
+  --p: #f4511e; --p-contrast: #ffffff;
+  --header-bg: #f4511e; --header-title: #ffffff; --header-sub: #fbe9e7;
+  --sel-bg: rgba(244, 81, 30, 0.15); --price-sel-bg: rgba(244, 81, 30, 0.25); }
 body.theme-coral.dark {
-  --p: #ff7043;
-  --p-contrast: #000000;
-  --header-bg: #bf360c;
-  --header-title: #ffffff;
-  --header-sub: #ffccbc;
-  --sel-bg: rgba(255, 112, 67, 0.2);
-}
+  --p: #ff7043; --p-contrast: #000000;
+  --header-bg: #bf360c; --header-title: #ffffff; --header-sub: #ffccbc;
+  --sel-bg: rgba(255, 112, 67, 0.2); }
 
-/* --- テーマ7: Rose --- */
 body.theme-rose {
-  --p: #d81b60;
-  --p-contrast: #ffffff;
-  --header-bg: #d81b60;
-  --header-title: #ffffff;
-  --header-sub: #fce4ec;
-  --sel-bg: rgba(216, 27, 96, 0.15);
-  --price-sel-bg: rgba(216, 27, 96, 0.25);
-}
+  --p: #d81b60; --p-contrast: #ffffff;
+  --header-bg: #d81b60; --header-title: #ffffff; --header-sub: #fce4ec;
+  --sel-bg: rgba(216, 27, 96, 0.15); --price-sel-bg: rgba(216, 27, 96, 0.25); }
 body.theme-rose.dark {
-  --p: #ec407a;
-  --p-contrast: #000000;
-  --header-bg: #880e4f;
-  --header-title: #ffffff;
-  --header-sub: #f8bbd0;
-  --sel-bg: rgba(236, 64, 122, 0.2);
-}
+  --p: #ec407a; --p-contrast: #000000;
+  --header-bg: #880e4f; --header-title: #ffffff; --header-sub: #f8bbd0;
+  --sel-bg: rgba(236, 64, 122, 0.2); }
 
-/* --- テーマ8: Lilac --- */
 body.theme-lilac {
-  --p: #8e24aa;
-  --p-contrast: #ffffff;
-  --header-bg: #8e24aa;
-  --header-title: #ffffff;
-  --header-sub: #f3e5f5;
-  --sel-bg: rgba(142, 36, 170, 0.15);
-  --price-sel-bg: rgba(142, 36, 170, 0.25);
-}
+  --p: #8e24aa; --p-contrast: #ffffff;
+  --header-bg: #8e24aa; --header-title: #ffffff; --header-sub: #f3e5f5;
+  --sel-bg: rgba(142, 36, 170, 0.15); --price-sel-bg: rgba(142, 36, 170, 0.25); }
 body.theme-lilac.dark {
-  --p: #ab47bc;
-  --p-contrast: #000000;
-  --header-bg: #4a148c;
-  --header-title: #ffffff;
-  --header-sub: #e1bee7;
-  --sel-bg: rgba(171, 71, 188, 0.2);
-}
+  --p: #ab47bc; --p-contrast: #000000;
+  --header-bg: #4a148c; --header-title: #ffffff; --header-sub: #e1bee7;
+  --sel-bg: rgba(171, 71, 188, 0.2); }
 
-/* --- テーマ9: Mono --- */
 body.theme-mono {
-  --p: #424242;
-  --p-contrast: #ffffff;
-  --header-bg: #212121;
-  --header-title: #ffffff;
-  --header-sub: #eeeeee;
-  --sel-bg: rgba(66, 66, 66, 0.15);
-  --price-sel-bg: rgba(33, 33, 33, 0.25);
-}
+  --p: #424242; --p-contrast: #ffffff;
+  --header-bg: #212121; --header-title: #ffffff; --header-sub: #eeeeee;
+  --sel-bg: rgba(66, 66, 66, 0.15); --price-sel-bg: rgba(33, 33, 33, 0.25); }
 body.theme-mono.dark {
-  --p: #bdbdbd;
-  --p-contrast: #000000;
-  --header-bg: #121212;
-  --header-title: #ffffff;
-  --header-sub: #e0e0e0;
-  --sel-bg: rgba(189, 189, 189, 0.2);
-}
-
+  --p: #bdbdbd; --p-contrast: #000000;
+  --header-bg: #121212; --header-title: #ffffff; --header-sub: #e0e0e0;
+  --sel-bg: rgba(189, 189, 189, 0.2); }
 
 ::selection { background-color: var(--sel-bg); }
 .badge::selection, .badge *::selection { background-color: var(--badge-sel-bg) !important; }
 .price-tag::selection, .price-tag *::selection { background-color: var(--price-sel-bg) !important; }
+
 
 body { 
   margin: 0; 
@@ -266,7 +181,6 @@ body.dark .handle-tab { border-color: rgba(255, 255, 255, 0.3); }
 
 .event-card { padding: 8px 12px; border-radius: 8px; background: var(--bg); cursor: pointer; border: 1px solid var(--brd); font-size: 13px; font-weight: 600; display: flex; flex-direction: row; align-items: center; overflow: hidden; }
 .event-card.active { background: var(--p); color: var(--p-contrast); border-color: var(--p); transition: background 0.3s, color 0.3s, border-color 0.3s; }
-/* ダークモード時のアクティブなイベントカードの色調整 */
 body.dark .event-card.active { background: var(--header-bg); color: #ffffff; border-color: var(--header-bg); }
 
 .event-card-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -382,7 +296,6 @@ input[type="radio"]:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .meta { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex-wrap: wrap; }
 
-/* 修正: 配置バッジ（ダークモード時はヘッダー用の背景色＋白文字＋白枠に変更） */
 .badge { background: var(--p); color: var(--p-contrast); font-size: 13px; font-weight: 600; padding: 4px 6px; min-height: 24px; border-radius: 4px; letter-spacing: 0.7px; border: 1.5px solid var(--p); display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; line-height: 1.2; transition: background 0.3s, color 0.3s, border-color 0.3s; }
 body.dark .badge { background: var(--header-bg); color: #ffffff; border-color: rgba(255, 255, 255, 0.9); }
 
