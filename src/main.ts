@@ -1139,8 +1139,6 @@ document.addEventListener('alpine:init', () => {
             y += getWrappedTextHeight(ctx, this.currentEvent?.name || 'Event', width - padding * 2, 40 * scale);
           }
           
-          y += 5 * scale;
-          
           // 2. サブタイトル
           ctx.font = subTitleFont;
           if (isDraw) drawWrappedText(ctx, 'PURCHASED LIST', width / 2, y, width - padding * 2, 30 * scale, 'center');
