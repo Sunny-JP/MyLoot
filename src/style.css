@@ -69,8 +69,8 @@ body.dark .handle-tab { border-color: rgba(255, 255, 255, 0.3); }
   .form-pane { position: static; width: 380px; display: block; background: var(--bg); z-index: auto; padding: 12px; border-right: 1px solid var(--brd); }
   .form-pane .form-card { width: auto; max-width: none; max-height: none; }
   .map-pane { height: 100% !important; border-top: none; border-left: 1px solid var(--brd); box-shadow: -4px 0 12px rgba(0,0,0,0.1); }
-  .drawer-handle { width: 20px; height: 100%; top: 0; left: -21px; align-items: center; justify-content: flex-start; cursor: ew-resize; }
-  .handle-tab { width: 20px; height: 50px; border-radius: 12px 0 0 12px; }
+  .drawer-handle { width: 20px; height: 100%; top: 0; left: -22px; align-items: center; justify-content: flex-start; cursor: ew-resize; }
+  .handle-tab { border: 1.5px solid var(--p); border-right: none; width: 20px; height: 50px; border-radius: 12px 0 0 12px; }
 }
 
 .map-empty { height: 100%; display: flex; align-items: center; justify-content: center; color: var(--mut); font-size: 12px; }
