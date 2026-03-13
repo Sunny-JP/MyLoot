@@ -11,7 +11,7 @@
   "devDependencies": {
     "@types/alpinejs": "^3.13.11",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1",
+    "vite": "^8.0.0",
     "vite-plugin-pwa": "^1.2.0"
   },
   "dependencies": {
@@ -23,6 +23,9 @@
     "pdfjs-dist": "^5.4.624"
   },
   "overrides": {
-    "serialize-javascript": "^7.0.3"
+    "serialize-javascript": "^7.0.3",
+    "vite-plugin-pwa": {
+      "vite": "$vite"
+    }
   }
 }

@@ -14,10 +14,7 @@ import { db, processImage } from './db';
 import type { Circle, Item, EventFolder } from './db';
 import { translations, languageList, type Language } from './i18n';
 
-import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 registerSW({ immediate: true });
 
@@ -455,6 +452,9 @@ document.addEventListener('alpine:init', () => {
 
       async renderPdf(url: string) {
         try {
+          const pdfjsLib = await import('pdfjs-dist');
+          pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
           const loadingTask = pdfjsLib.getDocument(url);
           const pdfDoc = await loadingTask.promise;
           
