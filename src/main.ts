@@ -314,7 +314,7 @@ Alpine.data('app', () => {
       if (patchRenderTimeout) window.clearTimeout(patchRenderTimeout);
       patchRenderTimeout = window.setTimeout(() => {
         this.executePatchRender();
-      }, 300);
+      }, 100);
     },
 
     async executePatchRender() {
@@ -334,9 +334,9 @@ Alpine.data('app', () => {
       for (let i = 0; i < pageWrappers.length; i++) {
         const pWrap = pageWrappers[i] as HTMLElement;
         const patches = pWrap.querySelectorAll('.pdf-patch-canvas') as NodeListOf<HTMLCanvasElement>;
-        
         const pRect = pWrap.getBoundingClientRect();
         
+        if (pRect.width === 0 || pRect.height === 0) continue;
         if (pRect.bottom < wrapRect.top || pRect.top > wrapRect.bottom || pRect.right < wrapRect.left || pRect.left > wrapRect.right) {
           continue; 
         }
@@ -364,12 +364,17 @@ Alpine.data('app', () => {
           nextPatch = patches[0];
         }
 
+        const leftPct = (visibleLeft / pRect.width) * 100;
+        const topPct = (visibleTop / pRect.height) * 100;
+        const widthPct = (patchW / pRect.width) * 100;
+        const heightPct = (patchH / pRect.height) * 100;
+
         nextPatch.style.transition = 'none';
         nextPatch.style.opacity = '0';
-        nextPatch.style.left = visibleLeft + 'px';
-        nextPatch.style.top = visibleTop + 'px';
-        nextPatch.style.width = patchW + 'px';
-        nextPatch.style.height = patchH + 'px';
+        nextPatch.style.left = leftPct + '%';
+        nextPatch.style.top = topPct + '%';
+        nextPatch.style.width = widthPct + '%';
+        nextPatch.style.height = heightPct + '%';
         
         nextPatch.width = Math.floor(patchW * pixelRatio);
         nextPatch.height = Math.floor(patchH * pixelRatio);
@@ -434,6 +439,7 @@ Alpine.data('app', () => {
           pageWrapper.className = 'pdf-page-wrapper';
           pageWrapper.style.position = 'relative';
           pageWrapper.style.marginBottom = '4px';
+          pageWrapper.style.overflow = 'hidden';
 
           const bgCanvas = document.createElement('canvas');
           bgCanvas.className = 'pdf-bg-canvas';
@@ -484,7 +490,6 @@ Alpine.data('app', () => {
 
     handleTouchStart(e: TouchEvent) {
       if (e.touches.length === 2) {
-        this.hidePatches();
         this.initialPinchDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
@@ -506,6 +511,7 @@ Alpine.data('app', () => {
     handleTouchMove(e: TouchEvent) {
       if (e.touches.length === 2) {
         e.preventDefault();
+        
         const wrapper = document.getElementById('pdf-scroll-wrapper');
         if (!wrapper) return;
 
@@ -533,7 +539,6 @@ Alpine.data('app', () => {
           this.pinchCenterX = newPinchCenterX;
           this.pinchCenterY = newPinchCenterY;
           
-          this.hidePatches();
           this.triggerPatchRender();
         }
       }
@@ -564,8 +569,6 @@ Alpine.data('app', () => {
 
       const scale = targetZoom / this.pdfZoom;
       this.pdfZoom = targetZoom;
-      
-      this.hidePatches();
 
       setTimeout(() => {
         wrapper.scrollLeft = (xContent * scale) - xRect;
@@ -806,7 +809,6 @@ Alpine.data('app', () => {
       const start = (e: any) => { 
         isDragging = true; 
         this.isPdfCollapsed = false;
-        this.hidePatches();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
         startX = clientX;
@@ -837,7 +839,6 @@ Alpine.data('app', () => {
       
       const move = (e: any) => {
         if (!isDragging) return;
-        this.hidePatches();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
