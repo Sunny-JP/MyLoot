@@ -41,6 +41,7 @@ export const translations = {
     terms: '利用規約',
     policy: 'ポリシー',
     developer: '開発者',
+    fileName: 'ファイル名',
 
     appearance: '外観',
     themeColor: 'テーマカラー',
@@ -152,6 +153,7 @@ export const translations = {
     terms: 'Terms',
     policy: 'Policy',
     developer: 'Developer',
+    fileName: 'File Name',
 
     appearance: 'Appearance',
     themeColor: 'Theme Color',
@@ -263,6 +265,7 @@ export const translations = {
     terms: '이용약관',
     policy: '정책',
     developer: '개발자',
+    fileName: '파일명',
     
     importDataTitle: '데이터 가져오기',
     importTarget: '가져오기 대상',
@@ -374,6 +377,7 @@ export const translations = {
     terms: '使用条款',
     policy: '隐私政策',
     developer: '开发者',
+    fileName: '文件名',
 
     appearance: '外观',
     themeColor: '主题颜色',

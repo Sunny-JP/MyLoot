@@ -229,6 +229,12 @@ document.addEventListener('alpine:init', () => {
         mode: 'new' as 'new' | 'append'
       },
 
+      exportModal: {
+        isOpen: false,
+        type: 'json' as 'json' | 'image',
+        fileName: '',
+      },
+
       showConfirm(message: string, callback: () => Promise<void> | void) {
         this.confirmModal.message = message;
         this.confirmModal.onConfirm = callback;
@@ -238,6 +244,23 @@ document.addEventListener('alpine:init', () => {
       closeConfirm() {
         this.confirmModal.isOpen = false;
         this.confirmModal.onConfirm = null;
+      },
+
+      openExportModal(type: 'json' | 'image') {
+        this.exportModal.type = type;
+        const baseName = this.currentEvent?.name || 'MyLoot';
+        this.exportModal.fileName = type === 'json' ? baseName : `${baseName}_Purchased`;
+        this.exportModal.isOpen = true;
+      },
+
+      executeExport() {
+        const fileName = this.exportModal.fileName || 'export';
+        if (this.exportModal.type === 'json') {
+          this.exportData(fileName + '.json');
+        } else {
+          this.generateReceiptImage(fileName + '.png');
+        }
+        this.exportModal.isOpen = false;
       },
 
       closeForm() {
@@ -776,12 +799,14 @@ document.addEventListener('alpine:init', () => {
       },
 
       async deleteEvent(id: number) {
-        if (!confirm(this.t('deleteEventConfirm'))) return;
-        await db.events.delete(id);
-        await db.circles.where('eventId').equals(id).delete();
-        await db.eventOrders.delete(id);
-        await this.init();
-        this.activeContextId = null;
+        this.showConfirm(this.t('deleteEventConfirm'), async () => {
+          await db.events.delete(id);
+          await db.circles.where('eventId').equals(id).delete();
+          await db.eventOrders.delete(id);
+          await this.init();
+          this.activeContextId = null;
+          this.closeConfirm();
+        });
       },
 
       async refreshCircles() {
@@ -956,17 +981,19 @@ document.addEventListener('alpine:init', () => {
       },
       async deleteSelected() {
         if (this.selectedUuids.length === 0) return;
-        if (!confirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`)) return;
-        await db.circles.bulkDelete(this.selectedUuids);
-        
-        const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
-        if (orderRecord) {
-          orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
-          await db.eventOrders.put(orderRecord);
-        }
-        
-        this.selectedUuids = [];
-        await this.refreshCircles();
+        this.showConfirm(`${this.selectedUuids.length}${this.t('deleteSelectedConfirm')}`, async () => {
+          await db.circles.bulkDelete(this.selectedUuids);
+          
+          const orderRecord = await db.eventOrders.get(this.currentEvent!.id!);
+          if (orderRecord) {
+            orderRecord.circleUuids = orderRecord.circleUuids.filter(u => !this.selectedUuids.includes(u));
+            await db.eventOrders.put(orderRecord);
+          }
+          
+          this.selectedUuids = [];
+          await this.refreshCircles();
+          this.closeConfirm();
+        });
       },
 
       checkAutoAddLink(index: number) {
@@ -991,11 +1018,14 @@ document.addEventListener('alpine:init', () => {
       },
 
       async resetMapPdf() {
-        if (!this.currentEvent || !this.currentEvent.id || !confirm(this.t('deletePdfConfirm'))) return;
-        await db.events.update(this.currentEvent.id, { mapPdf: undefined });
-        this.currentEvent.mapPdf = undefined;
-        if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
-        this.pdfUrl = null;
+        if (!this.currentEvent || !this.currentEvent.id) return;
+        this.showConfirm(this.t('deletePdfConfirm'), async () => {
+          await db.events.update(this.currentEvent!.id!, { mapPdf: undefined });
+          this.currentEvent!.mapPdf = undefined;
+          if (this.pdfUrl) URL.revokeObjectURL(this.pdfUrl);
+          this.pdfUrl = null;
+          this.closeConfirm();
+        });
       },
 
       removeItemInForm(index: number) { this.newItems.splice(index, 1); },
@@ -1105,7 +1135,7 @@ document.addEventListener('alpine:init', () => {
         reader.readAsText(this.importModal.file);
       },
 
-      generateReceiptImage() {
+      generateReceiptImage(fileName: string) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -1130,11 +1160,9 @@ document.addEventListener('alpine:init', () => {
         const primaryColor = '#1c1c1e';
         const mutColor = '#8e8e93';
 
-        // 共通レイアウト処理: isDraw が false なら高さ計算のみ、true なら実際に描画する
         const renderPass = (isDraw: boolean) => {
           let y = paddingTop;
 
-          // 1. イベント名
           ctx.font = titleFont;
           ctx.fillStyle = primaryColor;
           if (isDraw) {
@@ -1143,13 +1171,11 @@ document.addEventListener('alpine:init', () => {
             y += getWrappedTextHeight(ctx, this.currentEvent?.name || 'Event', width - padding * 2, 40 * scale);
           }
           
-          // 2. サブタイトル
           ctx.font = subTitleFont;
           if (isDraw) drawWrappedText(ctx, 'PURCHASED LIST', width / 2, y, width - padding * 2, 30 * scale, 'center');
           y += 30 * scale;
           y += 10 * scale;
           
-          // 3. 上部罫線
           if (isDraw) {
             ctx.strokeStyle = primaryColor;
             ctx.lineWidth = 2 * scale;
@@ -1160,7 +1186,6 @@ document.addEventListener('alpine:init', () => {
           }
           y += 30 * scale;
   
-          // 4. 明細リスト
           data.list.forEach(group => {
             ctx.font = circleFont;
             ctx.fillStyle = primaryColor;
@@ -1221,7 +1246,6 @@ document.addEventListener('alpine:init', () => {
   
           y += 10 * scale;
           
-          // 5. 下部罫線
           if (isDraw) {
             ctx.strokeStyle = primaryColor;
             ctx.beginPath();
@@ -1232,7 +1256,6 @@ document.addEventListener('alpine:init', () => {
           
           y += 20 * scale;
   
-          // 6. TOTAL
           ctx.fillStyle = primaryColor;
           ctx.font = totalLabelFont;
           if (isDraw) drawWrappedText(ctx, 'TOTAL', padding, y, width / 2 - padding, 28 * scale, 'left');
@@ -1243,7 +1266,6 @@ document.addEventListener('alpine:init', () => {
           y += 32 * scale;
           y += 15 * scale;
           
-          // 7. フッターURL
           ctx.fillStyle = mutColor;
           ctx.font = `bold ${18 * scale}px "Noto Sans", "Noto Sans JP", sans-serif`;
           if (isDraw) drawWrappedText(ctx, 'https://myloot.rabbit1.cc/', width / 2, y, width, 22 * scale, 'center');
@@ -1253,27 +1275,24 @@ document.addEventListener('alpine:init', () => {
           return y;
         };
 
-        // 【Pass 1】高さを計算する (isDraw = false)
         const totalHeight = renderPass(false);
   
-        // Canvasのサイズを確定して背景を白く塗りつぶす
         canvas.width = width;
         canvas.height = totalHeight;
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, totalHeight);
   
-        // 【Pass 2】実際に描画する (isDraw = true)
         renderPass(true);
 
         const a = document.createElement('a');
         a.href = canvas.toDataURL('image/png');
-        a.download = `${this.currentEvent?.name || 'MyLoot'}_Purchased.png`;
+        a.download = fileName;
         document.body.appendChild(a); 
         a.click();
         document.body.removeChild(a);
       },
 
-      async exportData() {
+      async exportData(fileName: string) {
         if (!this.currentEvent || !this.currentEvent.id) return;
         const orderRecord = await db.eventOrders.get(this.currentEvent.id);
         const data = {
@@ -1282,7 +1301,10 @@ document.addEventListener('alpine:init', () => {
           eventOrders: orderRecord
         };
         const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.currentEvent.name}.json`; a.click();
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(blob); 
+        a.download = fileName; 
+        a.click();
       }
     };
   });

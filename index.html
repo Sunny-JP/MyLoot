@@ -58,7 +58,7 @@
 
       <footer class="side-footer">
         <div style="display: flex; gap: 4px; margin-bottom: 8px">
-          <button class="btn-pill" style="flex: 1" @click="exportData()" x-text="t('export')"></button>
+          <button class="btn-pill" style="flex: 1" @click="openExportModal('json'); isMenuOpen = false;" x-text="t('export')"></button>
           <button class="btn-pill" style="flex: 1" @click="importModal.isOpen = true; importModal.file = null; importModal.fileName = ''; isMenuOpen = false;" x-text="t('import')"></button>
         </div>
         <button @click="isSettingsOpen = true; isMenuOpen = false" class="btn-pill" style="width: 100%; margin-bottom: 8px; gap: 4px">
@@ -285,7 +285,7 @@
             <div class="summary-section-header">
               <div style="display: flex; align-items: center; gap: 8px">
                 <h4 x-text="t('purchased')"></h4>
-                <button @click="generateReceiptImage()" class="icon-btn" :title="t('generateImage')" style="border: 1px solid var(--brd); border-radius: 4px; padding: 2px 6px; font-size: 11px; background: var(--bg)">
+                <button @click="openExportModal('image')" class="icon-btn" :title="t('generateImage')" style="border: 1px solid var(--brd); border-radius: 4px; padding: 2px 6px; font-size: 11px; background: var(--bg)">
                   <span class="material-icons-round" style="font-size: 14px; margin-right: 4px">image</span>
                   <span x-text="t('generateImage')"></span>
                 </button>
@@ -582,6 +582,25 @@
         <div class="form-footer">
           <button @click="executeImport()" class="btn-pill primary" style="flex: 1" :disabled="!importModal.file" x-text="t('execute')"></button>
           <button @click="importModal.isOpen = false" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="floating-modal" x-show="exportModal.isOpen" x-transition.opacity x-cloak style="z-index: 300">
+      <div class="form-card event-form">
+        <header class="modal-header"><h3 x-text="exportModal.type === 'json' ? t('export') : t('generateImage')"></h3></header>
+        <div class="form-row">
+          <div class="form-col">
+            <span class="group-label" x-text="t('fileName')"></span>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px">
+              <input type="text" x-model="exportModal.fileName" class="input-flat" style="flex: 1" />
+              <span style="color: var(--mut); font-size: 14px; font-weight: 600" x-text="exportModal.type === 'json' ? '.json' : '.png'"></span>
+            </div>
+          </div>
+        </div>
+        <div class="form-footer" style="margin-top: 24px">
+          <button @click="executeExport()" class="btn-pill primary" style="flex: 1" x-text="t('execute')"></button>
+          <button @click="exportModal.isOpen = false" class="btn-pill" style="flex: 1" x-text="t('cancel')"></button>
         </div>
       </div>
     </div>
