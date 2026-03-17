@@ -680,16 +680,16 @@ Alpine.data('app', () => {
 
     previewImages: [] as string[],
     previewIndex: 0,
-    imgStyles: { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' },
+    imgStylesArray: [] as { width: string; height: string; maxWidth: string; maxHeight: string }[],
 
-    get zoomedImgStyles() {
+    getImgStyles(idx: number) {
       const zoom = this.imgZoom;
-      const styles = this.imgStyles as { width: string; height: string };
+      const styles = this.imgStylesArray[idx] || { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
       
       if (styles.width === '100%') {
-        return { width: `${zoom * 100}%`, height: 'auto', maxWidth: 'none', maxHeight: 'none', display: 'block' };
+        return { width: `${zoom * 100}%`, height: 'auto', maxWidth: 'none', maxHeight: 'none' };
       } else {
-        return { height: `${zoom * 100}%`, width: 'auto', maxWidth: 'none', maxHeight: 'none', display: 'block' };
+        return { height: `${zoom * 100}%`, width: 'auto', maxWidth: 'none', maxHeight: 'none' };
       }
     },
 
@@ -998,30 +998,28 @@ Alpine.data('app', () => {
         : (circle.image ? [circle.image] : []);
       this.previewIndex = 0;
       this.imgZoom = 1.0;
-      this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
+      this.imgStylesArray = this.previewImages.map(() => ({ width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' }));
     },
 
     nextPreview() {
       this.previewIndex = (this.previewIndex + 1) % this.previewImages.length;
       this.imgZoom = 1.0;
-      this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
     },
-    
+
     prevPreview() {
       this.previewIndex = (this.previewIndex - 1 + this.previewImages.length) % this.previewImages.length;
       this.imgZoom = 1.0;
-      this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
     },
 
-    updateImgStyle(e: Event) {
+    updateImgStyle(e: Event, idx: number) {
       const img = e.target as HTMLImageElement;
       if (!img.naturalWidth) return;
       const containerRatio = 635 / 903;
       const imgRatio = img.naturalWidth / img.naturalHeight;
       if (imgRatio > containerRatio) {
-        this.imgStyles = { height: '100%', width: 'auto', maxWidth: 'none', maxHeight: 'none' };
+        this.imgStylesArray[idx] = { height: '100%', width: 'auto', maxWidth: 'none', maxHeight: 'none' };
       } else {
-        this.imgStyles = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
+        this.imgStylesArray[idx] = { width: '100%', height: 'auto', maxWidth: 'none', maxHeight: 'none' };
       }
     },
 

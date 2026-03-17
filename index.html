@@ -515,7 +515,9 @@
       <button class="slider-btn prev" x-show="previewImages.length > 1" @click.stop="prevPreview()"><span class="material-icons-round">chevron_left</span></button>
 
       <div class="preview-window" id="img-scroll-wrapper" @click.stop @dblclick.stop="toggleImgZoom($event)" @touchstart="handleImgTouchStart" @touchmove="handleImgTouchMove">
-        <img :src="previewImages[previewIndex]" :style="zoomedImgStyles" @load="updateImgStyle" />
+        <template x-for="(img, idx) in previewImages" :key="idx">
+          <img :src="img" x-show="idx === previewIndex" :style="getImgStyles(idx)" @load="updateImgStyle($event, idx)" />
+        </template>
       </div>
 
       <button class="slider-btn next" x-show="previewImages.length > 1" @click.stop="nextPreview()"><span class="material-icons-round">chevron_right</span></button>
